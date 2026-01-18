@@ -1,10 +1,14 @@
 {
   "name": "recall-link",
   "private": true,
+  "packageManager": "pnpm@10.8.1",
   "scripts": {
-    "dev": "pnpm -C apps/api dev",
-    "build": "pnpm -C apps/api build",
-    "typecheck": "pnpm -C apps/api typecheck",
-    "test": "pnpm -C apps/api test"
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test"
+  },
+  "devDependencies": {
+    "turbo": "^2.7.5"
   }
 }
