@@ -1,7 +1,10 @@
 import { serve } from '@hono/node-server'
 import { app } from './app'
+import { startWorker } from './queue/worker'
 
 const port = Number(process.env.PORT ?? 8787)
+
+startWorker({ enabled: process.env.WORKER_ENABLED === '1' })
 
 serve({ fetch: app.fetch, port })
 // eslint-disable-next-line no-console
