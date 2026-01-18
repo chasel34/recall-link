@@ -1,7 +1,6 @@
 {
   "name": "recall-link",
   "private": true,
-  "packageManager": "pnpm@9",
   "scripts": {
     "dev": "pnpm -C apps/api dev",
     "build": "pnpm -C apps/api build",

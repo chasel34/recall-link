@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
-import { chatRequestSchema } from './chat.schema'
+import { chatRequestSchema } from './chat.schema.js'
 
 export const chatApp = new Hono()
 

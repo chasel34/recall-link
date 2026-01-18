@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
-import { itemsApp } from '../features/items/items.route'
-import { chatApp } from '../features/chat/chat.route'
-import { eventsApp } from '../features/events/events.route'
+import { itemsApp } from '../features/items/items.route.js'
+import { chatApp } from '../features/chat/chat.route.js'
+import { eventsApp } from '../features/events/events.route.js'
 
 export const apiRoutes = new Hono()
 

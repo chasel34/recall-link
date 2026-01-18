@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import os from 'node:os'
 import path from 'node:path'
 import fs from 'node:fs'
-import { applySchema, openDb, defaultSchemaPath } from '../src/db/client'
+import { applySchema, openDb, defaultSchemaPath } from '../db/client.js'
 
 describe('db schema', () => {
   it('applies schema', () => {

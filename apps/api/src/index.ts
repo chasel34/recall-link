@@ -1,6 +1,6 @@
 import { serve } from '@hono/node-server'
-import { app } from './app'
-import { startWorker } from './queue/worker'
+import { app } from './app.js'
+import { startWorker } from './queue/worker.js'
 
 const port = Number(process.env.PORT ?? 8787)
 
