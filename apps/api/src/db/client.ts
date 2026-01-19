@@ -5,6 +5,12 @@ import path from 'node:path'
 export type Db = Database.Database
 
 export function openDb(dbPath: string): Db {
+  // 确保数据库目录存在
+  const dir = path.dirname(dbPath)
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true })
+  }
+
   const db = new Database(dbPath)
   db.pragma('journal_mode = WAL')
   return db
