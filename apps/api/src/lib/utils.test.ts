@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { generateId, normalizeUrl } from './utils.js'
+import { generateId, normalizeUrl, extractDomain } from './utils.js'
 
 describe('generateId', () => {
   it('should generate ID with prefix', () => {
@@ -50,5 +50,23 @@ describe('normalizeUrl', () => {
   it('should remove multiple tracking params', () => {
     const url = 'https://example.com/page?ref=x&gclid=y&_ga=z&id=real'
     expect(normalizeUrl(url)).toBe('https://example.com/page?id=real')
+  })
+})
+
+describe('extractDomain', () => {
+  it('should extract domain from URL', () => {
+    expect(extractDomain('https://example.com/path')).toBe('example.com')
+  })
+
+  it('should extract subdomain', () => {
+    expect(extractDomain('https://blog.example.com/article')).toBe('blog.example.com')
+  })
+
+  it('should handle URLs with ports', () => {
+    expect(extractDomain('https://example.com:8080/path')).toBe('example.com')
+  })
+
+  it('should handle URLs with query params', () => {
+    expect(extractDomain('https://example.com/path?q=test')).toBe('example.com')
   })
 })

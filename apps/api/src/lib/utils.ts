@@ -74,3 +74,13 @@ export function normalizeUrl(url: string): string {
 
   return normalized
 }
+
+/**
+ * Extract domain from URL
+ * @param url - Full URL
+ * @returns Domain without port, e.g., 'example.com'
+ */
+export function extractDomain(url: string): string {
+  const parsed = new URL(url)
+  return parsed.hostname
+}
