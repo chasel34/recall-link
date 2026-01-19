@@ -3,17 +3,13 @@ import { zValidator } from '@hono/zod-validator'
 import { createItemSchema, patchItemSchema } from './items.schema.js'
 import { generateId, normalizeUrl, extractDomain } from '../../lib/utils.js'
 import { findItemByNormalizedUrl, createItemWithJob } from './items.db.js'
-import { openDb, defaultSchemaPath, applySchema } from '../../db/client.js'
-import path from 'node:path'
+import { getDb } from '../../db/context.js'
 
 export const itemsApp = new Hono()
 
-const dbPath = path.join(process.cwd(), 'data', 'recall.db')
-const db = openDb(dbPath)
-applySchema(db, defaultSchemaPath())
-
 itemsApp.post('/', zValidator('json', createItemSchema), (c) => {
   try {
+    const db = getDb()
     const { url } = c.req.valid('json')
 
     const urlNormalized = normalizeUrl(url)
