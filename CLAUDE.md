@@ -44,7 +44,7 @@ docs/
 ## Development
 
 ```bash
-# Install
+# Install (run locally; user-managed)
 pnpm install
 
 # Dev
@@ -64,6 +64,7 @@ pnpm build
 
 - **ES Modules:** Always use `.js` in imports (`import { x } from './file.js'`)
 - **Package Manager:** Use `pnpm`, not `npm`
+- **Dependencies:** User performs dependency installs locally
 - **Database:** File-based with WAL mode, in-memory for tests
 - **Transactions:** Use `db.transaction(() => { ... })()`
 - **URL Normalization:** Removes utm_*, fbclid, etc., preserves meaningful params

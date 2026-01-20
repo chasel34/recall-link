@@ -1,8 +1,15 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
-import { createItemSchema, patchItemSchema } from './items.schema.js'
+import { createItemSchema, patchItemSchema, listItemsQuerySchema } from './items.schema.js'
 import { generateId, normalizeUrl, extractDomain } from '../../lib/utils.js'
-import { findItemByNormalizedUrl, createItemWithJob } from './items.db.js'
+import {
+  findItemByNormalizedUrl,
+  createItemWithJob,
+  listItems,
+  getItemById,
+  updateItem,
+  deleteItem,
+} from './items.db.js'
 import { getDb } from '../../db/context.js'
 
 export const itemsApp = new Hono()
@@ -53,8 +60,111 @@ itemsApp.post('/', zValidator('json', createItemSchema), (c) => {
   }
 })
 
-itemsApp.get('/', (c) => c.json({ items: [] }))
-itemsApp.get('/:id', (c) => c.json({ error: 'NOT_IMPLEMENTED' }, 501))
-itemsApp.patch('/:id', zValidator('json', patchItemSchema), (c) => c.json({ error: 'NOT_IMPLEMENTED' }, 501))
-itemsApp.delete('/:id', (c) => c.json({ error: 'NOT_IMPLEMENTED' }, 501))
+itemsApp.get('/', zValidator('query', listItemsQuerySchema), (c) => {
+  try {
+    const db = getDb()
+    const filters = c.req.valid('query')
+
+    const result = listItems(db, filters)
+
+    return c.json({
+      items: result.items,
+      total: result.total,
+      limit: filters.limit ?? 20,
+      offset: filters.offset ?? 0,
+    })
+  } catch (error) {
+    console.error('[GET /items] Error:', error)
+    return c.json({
+      error: 'INTERNAL_ERROR',
+      message: 'Failed to list items',
+    }, 500)
+  }
+})
+
+itemsApp.get('/:id', (c) => {
+  try {
+    const db = getDb()
+    const id = c.req.param('id')
+
+    const item = getItemById(db, id)
+
+    if (!item) {
+      return c.json({
+        error: 'NOT_FOUND',
+        message: 'Item not found',
+      }, 404)
+    }
+
+    return c.json(item)
+  } catch (error) {
+    console.error('[GET /items/:id] Error:', error)
+    return c.json({
+      error: 'INTERNAL_ERROR',
+      message: 'Failed to get item',
+    }, 500)
+  }
+})
+
+itemsApp.patch('/:id', zValidator('json', patchItemSchema), (c) => {
+  try {
+    const db = getDb()
+    const id = c.req.param('id')
+    const updates = c.req.valid('json')
+
+    const existing = getItemById(db, id)
+    if (!existing) {
+      return c.json({
+        error: 'NOT_FOUND',
+        message: 'Item not found',
+      }, 404)
+    }
+
+    const result = updateItem(db, id, updates)
+
+    if (result.changes === 0) {
+      return c.json({
+        error: 'NO_CHANGES',
+        message: 'No fields to update',
+      }, 400)
+    }
+
+    const updated = getItemById(db, id)
+    return c.json(updated)
+  } catch (error) {
+    console.error('[PATCH /items/:id] Error:', error)
+    return c.json({
+      error: 'INTERNAL_ERROR',
+      message: 'Failed to update item',
+    }, 500)
+  }
+})
+
+itemsApp.delete('/:id', (c) => {
+  try {
+    const db = getDb()
+    const id = c.req.param('id')
+
+    const result = deleteItem(db, id)
+
+    if (result.deletedItem === 0) {
+      return c.json({
+        error: 'NOT_FOUND',
+        message: 'Item not found',
+      }, 404)
+    }
+
+    return c.json({
+      message: 'Item deleted',
+      deleted_jobs: result.deletedJobs,
+    })
+  } catch (error) {
+    console.error('[DELETE /items/:id] Error:', error)
+    return c.json({
+      error: 'INTERNAL_ERROR',
+      message: 'Failed to delete item',
+    }, 500)
+  }
+})
+
 itemsApp.post('/:id/retry', (c) => c.json({ error: 'NOT_IMPLEMENTED' }, 501))

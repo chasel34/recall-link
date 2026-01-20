@@ -98,3 +98,171 @@ describe('POST /api/items', () => {
     expect(data.domain).toBe('blog.example.com')
   })
 })
+
+describe('GET /api/items', () => {
+  let db: Database.Database
+
+  beforeEach(() => {
+    db = new Database(':memory:')
+    applySchema(db, defaultSchemaPath())
+    setDb(db)
+  })
+
+  afterEach(() => {
+    closeDb()
+  })
+
+  it('should return empty list by default', async () => {
+    const res = await app.request('/api/items')
+
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.items).toEqual([])
+    expect(data.total).toBe(0)
+    expect(data.limit).toBe(20)
+    expect(data.offset).toBe(0)
+  })
+
+  it('should paginate results', async () => {
+    for (let i = 1; i <= 3; i += 1) {
+      await app.request('/api/items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: `https://example.com/${i}` }),
+      })
+    }
+
+    const res = await app.request('/api/items?limit=2&offset=1')
+
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.items).toHaveLength(2)
+    expect(data.total).toBe(3)
+    expect(data.limit).toBe(2)
+    expect(data.offset).toBe(1)
+  })
+})
+
+describe('GET /api/items/:id', () => {
+  let db: Database.Database
+
+  beforeEach(() => {
+    db = new Database(':memory:')
+    applySchema(db, defaultSchemaPath())
+    setDb(db)
+  })
+
+  afterEach(() => {
+    closeDb()
+  })
+
+  it('should return item by id', async () => {
+    const createRes = await app.request('/api/items', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: 'https://example.com' }),
+    })
+    const created = await createRes.json()
+
+    const res = await app.request(`/api/items/${created.id}`)
+
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.id).toBe(created.id)
+    expect(data.url).toBe('https://example.com')
+  })
+
+  it('should return 404 for non-existent item', async () => {
+    const res = await app.request('/api/items/item_nonexistent')
+
+    expect(res.status).toBe(404)
+    const data = await res.json()
+    expect(data.error).toBe('NOT_FOUND')
+  })
+})
+
+describe('PATCH /api/items/:id', () => {
+  let db: Database.Database
+
+  beforeEach(() => {
+    db = new Database(':memory:')
+    applySchema(db, defaultSchemaPath())
+    setDb(db)
+  })
+
+  afterEach(() => {
+    closeDb()
+  })
+
+  it('should update summary', async () => {
+    const createRes = await app.request('/api/items', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: 'https://example.com' }),
+    })
+    const created = await createRes.json()
+
+    const res = await app.request(`/api/items/${created.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ summary: 'My summary' }),
+    })
+
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.summary).toBe('My summary')
+    expect(data.summary_source).toBe('user')
+  })
+
+  it('should return 404 for non-existent item', async () => {
+    const res = await app.request('/api/items/item_nonexistent', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ note: 'Test' }),
+    })
+
+    expect(res.status).toBe(404)
+  })
+})
+
+describe('DELETE /api/items/:id', () => {
+  let db: Database.Database
+
+  beforeEach(() => {
+    db = new Database(':memory:')
+    applySchema(db, defaultSchemaPath())
+    setDb(db)
+  })
+
+  afterEach(() => {
+    closeDb()
+  })
+
+  it('should delete item', async () => {
+    const createRes = await app.request('/api/items', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: 'https://example.com' }),
+    })
+    const created = await createRes.json()
+
+    const res = await app.request(`/api/items/${created.id}`, {
+      method: 'DELETE',
+    })
+
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.message).toBe('Item deleted')
+
+    const getRes = await app.request(`/api/items/${created.id}`)
+    expect(getRes.status).toBe(404)
+  })
+
+  it('should return 404 for non-existent item', async () => {
+    const res = await app.request('/api/items/item_nonexistent', {
+      method: 'DELETE',
+    })
+
+    expect(res.status).toBe(404)
+  })
+})

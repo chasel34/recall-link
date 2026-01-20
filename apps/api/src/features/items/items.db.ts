@@ -86,3 +86,144 @@ export function createItemWithJob(
     return { itemId: data.itemId, jobId: data.jobId }
   })()
 }
+
+export type ListItemsFilters = {
+  status?: 'pending' | 'completed' | 'failed'
+  domain?: string
+  created_after?: string
+  created_before?: string
+  sort_by?: 'created_at' | 'updated_at' | 'domain'
+  sort_order?: 'asc' | 'desc'
+  limit?: number
+  offset?: number
+}
+
+export type ListItemsResult = {
+  items: Item[]
+  total: number
+}
+
+/**
+ * List items with pagination, filtering, and sorting
+ */
+export function listItems(db: Database, filters: ListItemsFilters = {}): ListItemsResult {
+  const {
+    status,
+    domain,
+    created_after,
+    created_before,
+    sort_by = 'created_at',
+    sort_order = 'desc',
+    limit = 20,
+    offset = 0,
+  } = filters
+
+  const conditions: string[] = []
+  const params: Array<string | number> = []
+
+  if (status) {
+    conditions.push('status = ?')
+    params.push(status)
+  }
+
+  if (domain) {
+    conditions.push('domain = ?')
+    params.push(domain)
+  }
+
+  if (created_after) {
+    conditions.push('created_at >= ?')
+    params.push(created_after)
+  }
+
+  if (created_before) {
+    conditions.push('created_at < ?')
+    params.push(created_before)
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+
+  const countSql = `SELECT COUNT(*) as count FROM items ${whereClause}`
+  const { count } = db.prepare(countSql).get(...params) as { count: number }
+
+  const validSortBy = ['created_at', 'updated_at', 'domain'].includes(sort_by) ? sort_by : 'created_at'
+  const validSortOrder = sort_order === 'asc' ? 'ASC' : 'DESC'
+
+  const itemsSql = `
+    SELECT * FROM items
+    ${whereClause}
+    ORDER BY ${validSortBy} ${validSortOrder}
+    LIMIT ? OFFSET ?
+  `
+  const items = db.prepare(itemsSql).all(...params, limit, offset) as Item[]
+
+  return {
+    items,
+    total: count,
+  }
+}
+
+/**
+ * Get item by ID
+ */
+export function getItemById(db: Database, id: string): Item | null {
+  const item = db.prepare('SELECT * FROM items WHERE id = ?').get(id) as Item | undefined
+  return item ?? null
+}
+
+export type UpdateItemData = {
+  summary?: string
+  tags?: string[]
+  note?: string
+}
+
+/**
+ * Update item fields (user editable)
+ */
+export function updateItem(db: Database, id: string, updates: UpdateItemData): { changes: number } {
+  const sets: string[] = []
+  const params: Array<string | number> = []
+
+  if (updates.summary !== undefined) {
+    sets.push('summary = ?', 'summary_source = ?')
+    params.push(updates.summary, 'user')
+  }
+
+  if (updates.tags !== undefined) {
+    sets.push('tags_json = ?', 'tags_source = ?')
+    params.push(JSON.stringify(updates.tags), 'user')
+  }
+
+  if (updates.note !== undefined) {
+    sets.push('note = ?')
+    params.push(updates.note)
+  }
+
+  if (sets.length === 0) {
+    return { changes: 0 }
+  }
+
+  sets.push('updated_at = ?')
+  params.push(new Date().toISOString())
+  params.push(id)
+
+  const sql = `UPDATE items SET ${sets.join(', ')} WHERE id = ?`
+  const result = db.prepare(sql).run(...params)
+
+  return { changes: result.changes }
+}
+
+/**
+ * Delete item and associated jobs in transaction
+ */
+export function deleteItem(db: Database, id: string): { deletedItem: number; deletedJobs: number } {
+  return db.transaction(() => {
+    const jobResult = db.prepare('DELETE FROM jobs WHERE item_id = ?').run(id)
+    const itemResult = db.prepare('DELETE FROM items WHERE id = ?').run(id)
+
+    return {
+      deletedItem: itemResult.changes,
+      deletedJobs: jobResult.changes,
+    }
+  })()
+}
