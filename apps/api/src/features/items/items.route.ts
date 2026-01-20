@@ -6,11 +6,13 @@ import {
   findItemByNormalizedUrl,
   createItemWithJob,
   listItems,
+  listItemsByTags,
   getItemById,
   updateItem,
   deleteItem,
 } from './items.db.js'
 import { getDb } from '../../db/context.js'
+import { getItemTags } from '../tags/tags.db.js'
 
 export const itemsApp = new Hono()
 
@@ -65,10 +67,21 @@ itemsApp.get('/', zValidator('query', listItemsQuerySchema), (c) => {
     const db = getDb()
     const filters = c.req.valid('query')
 
-    const result = listItems(db, filters)
+    let result
+    if (filters.tags) {
+      const tagNames = filters.tags.split(',').map((tag) => tag.trim())
+      result = listItemsByTags(db, tagNames, filters)
+    } else {
+      result = listItems(db, filters)
+    }
+
+    const itemsWithTags = result.items.map((item) => ({
+      ...item,
+      tags: getItemTags(db, item.id),
+    }))
 
     return c.json({
-      items: result.items,
+      items: itemsWithTags,
       total: result.total,
       limit: filters.limit ?? 20,
       offset: filters.offset ?? 0,
@@ -96,7 +109,12 @@ itemsApp.get('/:id', (c) => {
       }, 404)
     }
 
-    return c.json(item)
+    const tags = getItemTags(db, id)
+
+    return c.json({
+      ...item,
+      tags,
+    })
   } catch (error) {
     console.error('[GET /items/:id] Error:', error)
     return c.json({
@@ -164,6 +182,55 @@ itemsApp.delete('/:id', (c) => {
       error: 'INTERNAL_ERROR',
       message: 'Failed to delete item',
     }, 500)
+  }
+})
+
+itemsApp.post('/:id/analyze', (c) => {
+  try {
+    const db = getDb()
+    const id = c.req.param('id')
+
+    const item = getItemById(db, id)
+    if (!item) {
+      return c.json(
+        {
+          error: 'NOT_FOUND',
+          message: 'Item not found',
+        },
+        404
+      )
+    }
+
+    if (!item.clean_text) {
+      return c.json(
+        {
+          error: 'NO_CONTENT',
+          message: 'Item has no content to analyze. Fetch content first.',
+        },
+        400
+      )
+    }
+
+    const jobId = generateId('job')
+    const now = new Date().toISOString()
+
+    db.prepare(
+      `
+        INSERT INTO jobs (id, item_id, type, state, attempt, run_after, created_at, updated_at)
+        VALUES (?, ?, 'ai_process', 'pending', 0, ?, ?, ?)
+      `
+    ).run(jobId, id, now, now, now)
+
+    return c.json({ job_id: jobId }, 201)
+  } catch (error) {
+    console.error('[POST /items/:id/analyze] Error:', error)
+    return c.json(
+      {
+        error: 'INTERNAL_ERROR',
+        message: 'Failed to create analysis job',
+      },
+      500
+    )
   }
 })
 

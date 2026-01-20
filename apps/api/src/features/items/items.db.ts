@@ -163,6 +163,78 @@ export function listItems(db: Database, filters: ListItemsFilters = {}): ListIte
   }
 }
 
+export function listItemsByTags(
+  db: Database,
+  tagNames: string[],
+  filters: ListItemsFilters = {}
+): ListItemsResult {
+  const {
+    status,
+    domain,
+    created_after,
+    created_before,
+    sort_by = 'created_at',
+    sort_order = 'desc',
+    limit = 20,
+    offset = 0,
+  } = filters
+
+  const conditions: string[] = []
+  const params: Array<string | number> = []
+
+  if (status) {
+    conditions.push('i.status = ?')
+    params.push(status)
+  }
+
+  if (domain) {
+    conditions.push('i.domain = ?')
+    params.push(domain)
+  }
+
+  if (created_after) {
+    conditions.push('i.created_at >= ?')
+    params.push(created_after)
+  }
+
+  if (created_before) {
+    conditions.push('i.created_at <= ?')
+    params.push(created_before)
+  }
+
+  const tagPlaceholders = tagNames.map(() => '?').join(',')
+  params.push(...tagNames)
+
+  const whereClause = conditions.length > 0 ? `AND ${conditions.join(' AND ')}` : ''
+
+  const countSql = `
+    SELECT COUNT(DISTINCT i.id) as count
+    FROM items i
+    JOIN item_tags it ON i.id = it.item_id
+    JOIN tags t ON it.tag_id = t.id
+    WHERE t.name IN (${tagPlaceholders})
+    ${whereClause}
+  `
+  const { count } = db.prepare(countSql).get(...params) as { count: number }
+
+  const validSortBy = ['created_at', 'updated_at', 'domain'].includes(sort_by) ? sort_by : 'created_at'
+  const validSortOrder = sort_order === 'asc' ? 'ASC' : 'DESC'
+
+  const itemsSql = `
+    SELECT DISTINCT i.*
+    FROM items i
+    JOIN item_tags it ON i.id = it.item_id
+    JOIN tags t ON it.tag_id = t.id
+    WHERE t.name IN (${tagPlaceholders})
+    ${whereClause}
+    ORDER BY i.${validSortBy} ${validSortOrder}
+    LIMIT ? OFFSET ?
+  `
+  const items = db.prepare(itemsSql).all(...params, limit, offset) as Item[]
+
+  return { items, total: count }
+}
+
 /**
  * Get item by ID
  */

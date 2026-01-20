@@ -79,15 +79,16 @@ describe('items.db', () => {
       expect(() => {
         createItemWithJob(db, {
           itemId: 'item_2',
-          jobId: 'job_2',
+          jobId: 'job_1',
           url: 'https://other.com',
           urlNormalized: 'https://other.com',
           domain: 'other.com',
           timestamp,
         })
-        db.prepare('INSERT INTO jobs (id, item_id, type, state, attempt, run_after, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-          .run('job_duplicate', 'item_1', 'fetch', 'pending', 0, timestamp, timestamp, timestamp)
       }).toThrow()
+
+      const item2 = db.prepare('SELECT * FROM items WHERE id = ?').get('item_2') as any
+      expect(item2).toBeUndefined()
     })
   })
 

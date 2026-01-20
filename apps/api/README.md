@@ -160,6 +160,100 @@ Delete an item and its related jobs.
 }
 ```
 
+## AI Processing
+
+### Configuration
+
+Set environment variables:
+
+```bash
+GEMINI_BASE_URL=http://127.0.0.1:8317/v1beta
+GEMINI_API_KEY=your_api_key
+GEMINI_MODEL=gemini-3-flash-preview
+```
+
+Or use `config/ai.json` for defaults.
+
+### POST /api/items/:id/analyze
+
+Manually trigger AI analysis for an item.
+
+**Response (201):**
+```json
+{
+  "job_id": "job_xxx"
+}
+```
+
+**Errors:**
+- 404: Item not found
+- 400: Item has no content
+
+### GET /api/tags
+
+Get all tags with metadata.
+
+**Response (200):**
+```json
+{
+  "tags": [
+    {
+      "id": "tag_xxx",
+      "name": "React",
+      "item_count": 5,
+      "created_at": "2026-01-20T10:00:00.000Z"
+    }
+  ]
+}
+```
+
+Tags are sorted by item_count (desc) then name (asc).
+
+### GET /api/items
+
+Now includes `tags` array in responses and supports filtering.
+
+**Query Parameters:**
+- `tags` - Filter by tags (comma-separated, e.g., `?tags=React,TypeScript`)
+
+**Response:**
+```json
+{
+  "items": [
+    {
+      "id": "item_xxx",
+      "url": "...",
+      "summary": "...",
+      "summary_source": "ai",
+      "tags": ["React", "TypeScript", "前端"]
+    }
+  ],
+  "total": 42
+}
+```
+
+### Automatic AI Processing
+
+After fetch job completes, an `ai_process` job is automatically created. The worker will:
+
+1. Generate 3-5 tags and a summary (简体中文)
+2. Merge tags semantically with existing tags
+3. Update item with summary and tags
+
+### Smart Retry Logic
+
+AI jobs have intelligent retry:
+- **Retry:** 429 rate limit (longer backoff), 5xx errors, network timeouts
+- **No retry:** 401/403 auth errors, 4xx client errors
+
+### Tag Merging
+
+When generating tags, the AI compares with existing tags:
+- Similar tags → use existing tag (e.g., "react" → "React")
+- New tags → create new tag
+
+This prevents tag fragmentation.
+
 ## URL Normalization
 
 URLs are normalized before duplicate detection:

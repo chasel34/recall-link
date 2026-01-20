@@ -19,10 +19,31 @@ CREATE TABLE IF NOT EXISTS items (
   processed_at TEXT
 );
 
+-- tags
+CREATE TABLE IF NOT EXISTS tags (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  created_at TEXT NOT NULL,
+  item_count INTEGER DEFAULT 0
+);
+
+-- item-tags
+CREATE TABLE IF NOT EXISTS item_tags (
+  item_id TEXT NOT NULL,
+  tag_id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (item_id, tag_id),
+  FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE,
+  FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_item_tags_item_id ON item_tags(item_id);
+CREATE INDEX IF NOT EXISTS idx_item_tags_tag_id ON item_tags(tag_id);
+
 -- jobs (lease/backoff)
 CREATE TABLE IF NOT EXISTS jobs (
   id TEXT PRIMARY KEY,
-  item_id TEXT NOT NULL UNIQUE,
+  item_id TEXT NOT NULL,
   type TEXT NOT NULL,
   state TEXT NOT NULL,
   attempt INTEGER NOT NULL,
@@ -36,6 +57,9 @@ CREATE TABLE IF NOT EXISTS jobs (
   started_at TEXT,
   finished_at TEXT
 );
+
+CREATE INDEX IF NOT EXISTS idx_jobs_item_id ON jobs(item_id);
+CREATE INDEX IF NOT EXISTS idx_jobs_state_run_after ON jobs(state, run_after);
 
 -- FTS skeleton (real FTS5 implementation can replace later)
 CREATE VIRTUAL TABLE IF NOT EXISTS items_fts USING fts5(

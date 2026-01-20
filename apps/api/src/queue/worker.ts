@@ -4,6 +4,7 @@ import { getDb } from '../db/context.js'
 import type { Job } from '../features/jobs/jobs.db.js'
 import { acquireJob, completeJob, failJob, retryJob, failItem } from '../features/jobs/jobs.db.js'
 import { processFetchJob } from './processors/fetch.processor.js'
+import { processAIJob, shouldRetryAIError } from './processors/ai.processor.js'
 
 const POLL_INTERVAL_MS = 5000
 const MAX_ATTEMPTS = 3
@@ -89,6 +90,9 @@ async function processJob(db: Database, job: Job): Promise<void> {
     case 'fetch':
       await processFetchJob(db, job)
       break
+    case 'ai_process':
+      await processAIJob(db, job)
+      break
     default:
       throw new Error(`Unknown job type: ${job.type}`)
   }
@@ -99,13 +103,19 @@ async function processJob(db: Database, job: Job): Promise<void> {
  */
 async function handleJobFailure(db: Database, job: Job, error: Error): Promise<void> {
   const nextAttempt = job.attempt + 1
+  const maxAttempts = 3
 
-  if (nextAttempt >= MAX_ATTEMPTS) {
-    console.log(`[worker] Job ${job.id} failed after ${nextAttempt} attempts`)
-    failJob(db, job.id, error.message)
-    failItem(db, job.item_id, error.message)
+  let shouldRetry = false
+  if (job.type === 'ai_process') {
+    shouldRetry = shouldRetryAIError(error)
   } else {
-    const delayMinutes = Math.pow(2, nextAttempt)
+    shouldRetry = true
+  }
+
+  if (shouldRetry && nextAttempt < maxAttempts) {
+    const isRateLimit = (error as any).status === 429
+    const baseDelay = isRateLimit ? 5 : 2
+    const delayMinutes = baseDelay * Math.pow(2, nextAttempt)
     const runAfter = new Date(Date.now() + delayMinutes * 60 * 1000).toISOString()
 
     console.log(`[worker] Scheduling retry ${nextAttempt} for job ${job.id} after ${delayMinutes} min`)
@@ -115,5 +125,11 @@ async function handleJobFailure(db: Database, job: Job, error: Error): Promise<v
       run_after: runAfter,
       error_message: error.message,
     })
+  } else {
+    console.log(`[worker] Job ${job.id} failed permanently`)
+    failJob(db, job.id, error.message)
+    if (job.type === 'fetch' || job.type === 'ai_process') {
+      failItem(db, job.item_id, error.message)
+    }
   }
 }

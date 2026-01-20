@@ -4,6 +4,7 @@ import { JSDOM } from 'jsdom'
 import type { Job } from '../../features/jobs/jobs.db.js'
 import { updateItemContent } from '../../features/jobs/jobs.db.js'
 import { getItemById } from '../../features/items/items.db.js'
+import { generateId } from '../../lib/utils.js'
 
 /**
  * Process fetch job - download webpage and extract content
@@ -46,4 +47,16 @@ export async function processFetchJob(db: Database, job: Job): Promise<void> {
   })
 
   console.log(`[fetch] Completed ${item.url}`)
+
+  const aiJobId = generateId('job')
+  const now = new Date().toISOString()
+
+  db.prepare(
+    `
+      INSERT INTO jobs (id, item_id, type, state, attempt, run_after, created_at, updated_at)
+      VALUES (?, ?, 'ai_process', 'pending', 0, ?, ?, ?)
+    `
+  ).run(aiJobId, item.id, now, now, now)
+
+  console.log(`[fetch] Created ai_process job ${aiJobId} for item ${item.id}`)
 }

@@ -10,9 +10,11 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@ai-sdk/google": "^3.0.10",
     "@hono/node-server": "^1.13.0",
     "@hono/zod-validator": "^0.4.1",
     "@mozilla/readability": "^0.6.0",
+    "ai": "^6.0.41",
     "better-sqlite3": "^11.0.0",
     "hono": "^4.6.0",
     "jsdom": "^27.4.0",
