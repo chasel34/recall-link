@@ -31,11 +31,22 @@ export function findOrCreateTag(db: Database, name: string): string {
 
 export function setItemTags(db: Database, itemId: string, tagNames: string[]): void {
   db.transaction(() => {
+    // Get old tag IDs before deletion
+    const oldTagIds = db
+      .prepare('SELECT tag_id FROM item_tags WHERE item_id = ?')
+      .all(itemId) as { tag_id: string }[]
+
+    const oldTagIdSet = new Set(oldTagIds.map(t => t.tag_id))
+
+    // Delete old associations
     db.prepare('DELETE FROM item_tags WHERE item_id = ?').run(itemId)
 
+    // Insert new associations and collect new tag IDs
+    const newTagIds = new Set<string>()
     const now = new Date().toISOString()
     for (const name of tagNames) {
       const tagId = findOrCreateTag(db, name)
+      newTagIds.add(tagId)
       db.prepare(
         `
           INSERT INTO item_tags (item_id, tag_id, created_at)
@@ -44,14 +55,21 @@ export function setItemTags(db: Database, itemId: string, tagNames: string[]): v
       ).run(itemId, tagId, now)
     }
 
-    db.prepare(
-      `
-        UPDATE tags
-        SET item_count = (
-          SELECT COUNT(*) FROM item_tags WHERE tag_id = tags.id
-        )
-      `
-    ).run()
+    // Merge affected tag IDs (old union new)
+    const affectedTagIds = new Set([...oldTagIdSet, ...newTagIds])
+
+    // Update item_count only for affected tags
+    const updateStmt = db.prepare(`
+      UPDATE tags
+      SET item_count = (
+        SELECT COUNT(*) FROM item_tags WHERE tag_id = ?
+      )
+      WHERE id = ?
+    `)
+
+    for (const tagId of affectedTagIds) {
+      updateStmt.run(tagId, tagId)
+    }
   })()
 }
 

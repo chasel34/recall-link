@@ -73,6 +73,45 @@ describe('tags.db', () => {
       const tags = getItemTags(db, 'item_test')
       expect(tags).toEqual([])
     })
+
+    it('should only update item_count for affected tags', () => {
+      const timestamp = new Date().toISOString()
+
+      // Create another item
+      db.prepare(`
+        INSERT INTO items (id, url, url_normalized, domain, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run('item_test2', 'https://example.com/2', 'https://example.com/2', 'example.com', 'pending', timestamp, timestamp)
+
+      // Set tags for both items
+      setItemTags(db, 'item_test', ['React', 'TypeScript', 'Frontend'])
+      setItemTags(db, 'item_test2', ['Vue', 'JavaScript'])
+
+      // Verify initial counts
+      const getCount = (name: string) => {
+        const result = db.prepare('SELECT item_count FROM tags WHERE name = ?').get(name) as { item_count: number } | undefined
+        return result?.item_count ?? 0
+      }
+
+      expect(getCount('React')).toBe(1)
+      expect(getCount('TypeScript')).toBe(1)
+      expect(getCount('Frontend')).toBe(1)
+      expect(getCount('Vue')).toBe(1)
+      expect(getCount('JavaScript')).toBe(1)
+
+      // Update item_test tags: React, TypeScript, Frontend → React, Vue, Backend
+      // Affected tags: React (old+new), TypeScript (old only), Frontend (old only), Vue (new only), Backend (new only)
+      // Unaffected: JavaScript (should stay 1)
+      setItemTags(db, 'item_test', ['React', 'Vue', 'Backend'])
+
+      // Verify counts after update
+      expect(getCount('React')).toBe(1)      // Kept
+      expect(getCount('TypeScript')).toBe(0) // Removed from item_test
+      expect(getCount('Frontend')).toBe(0)   // Removed from item_test
+      expect(getCount('Vue')).toBe(2)        // Added to item_test (was 1 from item_test2)
+      expect(getCount('Backend')).toBe(1)    // New tag
+      expect(getCount('JavaScript')).toBe(1) // Unaffected (only in item_test2)
+    })
   })
 
   describe('getItemTags', () => {
