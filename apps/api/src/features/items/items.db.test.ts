@@ -9,6 +9,7 @@ import {
   updateItem,
   deleteItem,
 } from './items.db.js'
+import { getItemTags } from '../tags/tags.db.js'
 
 describe('items.db', () => {
   let db: Database.Database
@@ -266,6 +267,20 @@ describe('items.db', () => {
       const item = getItemById(db, 'item_test')
       expect(item?.tags_json).toBe('["react","typescript"]')
       expect(item?.tags_source).toBe('user')
+    })
+
+    it('should sync tags to item_tags table when updating', () => {
+      // Update tags via updateItem
+      updateItem(db, 'item_test', { tags: ['React', 'TypeScript', 'Frontend'] })
+
+      // Verify item_tags table was updated
+      const tags = getItemTags(db, 'item_test')
+      expect(tags).toEqual(['Frontend', 'React', 'TypeScript'])
+
+      // Update again with different tags
+      updateItem(db, 'item_test', { tags: ['Vue', 'JavaScript'] })
+      const updatedTags = getItemTags(db, 'item_test')
+      expect(updatedTags).toEqual(['JavaScript', 'Vue'])
     })
 
     it('should update note', () => {

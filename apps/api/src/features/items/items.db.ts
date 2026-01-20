@@ -1,4 +1,5 @@
 import type { Database } from 'better-sqlite3'
+import { setItemTags } from '../tags/tags.db.js'
 
 export type Item = {
   id: string
@@ -253,36 +254,43 @@ export type UpdateItemData = {
  * Update item fields (user editable)
  */
 export function updateItem(db: Database, id: string, updates: UpdateItemData): { changes: number } {
-  const sets: string[] = []
-  const params: Array<string | number> = []
+  return db.transaction(() => {
+    const sets: string[] = []
+    const params: Array<string | number> = []
 
-  if (updates.summary !== undefined) {
-    sets.push('summary = ?', 'summary_source = ?')
-    params.push(updates.summary, 'user')
-  }
+    if (updates.summary !== undefined) {
+      sets.push('summary = ?', 'summary_source = ?')
+      params.push(updates.summary, 'user')
+    }
 
-  if (updates.tags !== undefined) {
-    sets.push('tags_json = ?', 'tags_source = ?')
-    params.push(JSON.stringify(updates.tags), 'user')
-  }
+    if (updates.tags !== undefined) {
+      sets.push('tags_json = ?', 'tags_source = ?')
+      params.push(JSON.stringify(updates.tags), 'user')
+    }
 
-  if (updates.note !== undefined) {
-    sets.push('note = ?')
-    params.push(updates.note)
-  }
+    if (updates.note !== undefined) {
+      sets.push('note = ?')
+      params.push(updates.note)
+    }
 
-  if (sets.length === 0) {
-    return { changes: 0 }
-  }
+    if (sets.length === 0) {
+      return { changes: 0 }
+    }
 
-  sets.push('updated_at = ?')
-  params.push(new Date().toISOString())
-  params.push(id)
+    sets.push('updated_at = ?')
+    params.push(new Date().toISOString())
+    params.push(id)
 
-  const sql = `UPDATE items SET ${sets.join(', ')} WHERE id = ?`
-  const result = db.prepare(sql).run(...params)
+    const sql = `UPDATE items SET ${sets.join(', ')} WHERE id = ?`
+    const result = db.prepare(sql).run(...params)
 
-  return { changes: result.changes }
+    // Sync item_tags table when tags are updated
+    if (updates.tags !== undefined) {
+      setItemTags(db, id, updates.tags)
+    }
+
+    return { changes: result.changes }
+  })()
 }
 
 /**
