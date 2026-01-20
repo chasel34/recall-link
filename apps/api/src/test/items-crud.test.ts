@@ -161,8 +161,7 @@ describe('Items CRUD Integration Tests', () => {
       })
       expect(res.status).toBe(200)
       const data = await res.json()
-      expect(data.tags_json).toBe('["react","typescript"]')
-      expect(data.tags_source).toBe('user')
+      expect(data.tags).toEqual(['react', 'typescript'])
     })
 
     it('should update note', async () => {

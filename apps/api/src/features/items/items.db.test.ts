@@ -262,11 +262,11 @@ describe('items.db', () => {
 
     it('should update tags with user source', () => {
       const result = updateItem(db, 'item_test', { tags: ['react', 'typescript'] })
-      expect(result.changes).toBe(1)
+      expect(result.changes).toBe(0) // No SQL fields updated, only item_tags table
 
-      const item = getItemById(db, 'item_test')
-      expect(item?.tags_json).toBe('["react","typescript"]')
-      expect(item?.tags_source).toBe('user')
+      // Verify tags were set in item_tags table
+      const tags = getItemTags(db, 'item_test')
+      expect(tags).toEqual(['react', 'typescript'])
     })
 
     it('should sync tags to item_tags table when updating', () => {
@@ -301,8 +301,11 @@ describe('items.db', () => {
 
       const item = getItemById(db, 'item_test')
       expect(item?.summary).toBe('Summary')
-      expect(item?.tags_json).toBe('["tag1"]')
       expect(item?.note).toBe('Note')
+
+      // Verify tags were set in item_tags table
+      const tags = getItemTags(db, 'item_test')
+      expect(tags).toEqual(['tag1'])
     })
 
     it('should update updated_at timestamp', () => {

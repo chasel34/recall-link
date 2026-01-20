@@ -11,8 +11,6 @@ CREATE TABLE IF NOT EXISTS items (
   clean_text TEXT,
   summary TEXT,
   summary_source TEXT,
-  tags_json TEXT,
-  tags_source TEXT,
   note TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,

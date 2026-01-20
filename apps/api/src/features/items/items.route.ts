@@ -138,17 +138,24 @@ itemsApp.patch('/:id', zValidator('json', patchItemSchema), (c) => {
       }, 404)
     }
 
-    const result = updateItem(db, id, updates)
-
-    if (result.changes === 0) {
+    // Check if there are any updates
+    const hasUpdates = updates.summary !== undefined || updates.tags !== undefined || updates.note !== undefined
+    if (!hasUpdates) {
       return c.json({
         error: 'NO_CHANGES',
         message: 'No fields to update',
       }, 400)
     }
 
+    updateItem(db, id, updates)
+
     const updated = getItemById(db, id)
-    return c.json(updated)
+    const tags = getItemTags(db, id)
+
+    return c.json({
+      ...updated,
+      tags,
+    })
   } catch (error) {
     console.error('[PATCH /items/:id] Error:', error)
     return c.json({

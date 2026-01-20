@@ -13,8 +13,6 @@ export type Item = {
   clean_text: string | null
   summary: string | null
   summary_source: string | null
-  tags_json: string | null
-  tags_source: string | null
   note: string | null
   created_at: string
   updated_at: string
@@ -263,14 +261,14 @@ export function updateItem(db: Database, id: string, updates: UpdateItemData): {
       params.push(updates.summary, 'user')
     }
 
-    if (updates.tags !== undefined) {
-      sets.push('tags_json = ?', 'tags_source = ?')
-      params.push(JSON.stringify(updates.tags), 'user')
-    }
-
     if (updates.note !== undefined) {
       sets.push('note = ?')
       params.push(updates.note)
+    }
+
+    // Sync item_tags table when tags are updated
+    if (updates.tags !== undefined) {
+      setItemTags(db, id, updates.tags)
     }
 
     if (sets.length === 0) {
@@ -283,11 +281,6 @@ export function updateItem(db: Database, id: string, updates: UpdateItemData): {
 
     const sql = `UPDATE items SET ${sets.join(', ')} WHERE id = ?`
     const result = db.prepare(sql).run(...params)
-
-    // Sync item_tags table when tags are updated
-    if (updates.tags !== undefined) {
-      setItemTags(db, id, updates.tags)
-    }
 
     return { changes: result.changes }
   })()
