@@ -141,6 +141,59 @@ describe('GET /api/items', () => {
     expect(data.limit).toBe(2)
     expect(data.offset).toBe(1)
   })
+
+  it('should filter items by search query', async () => {
+    db.prepare(
+      `
+      INSERT INTO items (id, url, url_normalized, title, domain, status, clean_text, summary, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `
+    ).run(
+      'item_react',
+      'https://example.com/react',
+      'https://example.com/react',
+      'React Tutorial',
+      'example.com',
+      'completed',
+      'React hooks are powerful',
+      'Learn React hooks',
+      '2024-01-20T10:00:00Z',
+      '2024-01-20T10:00:00Z'
+    )
+
+    db.prepare(
+      `
+      INSERT INTO items (id, url, url_normalized, title, domain, status, clean_text, summary, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `
+    ).run(
+      'item_vue',
+      'https://example.com/vue',
+      'https://example.com/vue',
+      'Vue Guide',
+      'example.com',
+      'completed',
+      'Vue is great',
+      'Learn Vue',
+      '2024-01-20T10:00:00Z',
+      '2024-01-20T10:00:00Z'
+    )
+
+    db.exec(`
+      INSERT INTO items_fts (item_id, title, summary, tags, clean_text)
+      VALUES
+        ('item_react', 'React Tutorial', 'Learn React hooks', '', 'React hooks are powerful'),
+        ('item_vue', 'Vue Guide', 'Learn Vue', '', 'Vue is great')
+    `)
+
+    const res = await app.request('/api/items?q=react')
+
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.items).toHaveLength(1)
+    expect(data.items[0].url).toBe('https://example.com/react')
+    expect(data.total).toBe(1)
+  })
 })
 
 describe('GET /api/items/:id', () => {
