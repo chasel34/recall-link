@@ -4,7 +4,9 @@
   "packageManager": "pnpm@10.8.1",
   "scripts": {
     "dev": "turbo dev",
+    "dev:web": "pnpm --filter @recall-link/web dev",
     "build": "turbo build",
+    "build:web": "pnpm --filter @recall-link/web build",
     "typecheck": "turbo typecheck",
     "test": "turbo test"
   },

@@ -13,6 +13,7 @@ import {
 } from './items.db.js'
 import { getDb } from '../../db/context.js'
 import { getItemTags } from '../tags/tags.db.js'
+import { searchItems } from './items.search.js'
 
 export const itemsApp = new Hono()
 
@@ -68,7 +69,9 @@ itemsApp.get('/', zValidator('query', listItemsQuerySchema), (c) => {
     const filters = c.req.valid('query')
 
     let result
-    if (filters.tags) {
+    if (filters.q) {
+      result = searchItems(db, filters.q, filters)
+    } else if (filters.tags) {
       const tagNames = filters.tags.split(',').map((tag) => tag.trim())
       result = listItemsByTags(db, tagNames, filters)
     } else {
