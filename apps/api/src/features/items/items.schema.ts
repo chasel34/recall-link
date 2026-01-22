@@ -16,6 +16,7 @@ export const listItemsQuerySchema = z.object({
   created_after: z.string().datetime().optional(),
   created_before: z.string().datetime().optional(),
   tags: z.string().optional(),
+  q: z.string().optional(),
   sort_by: z.enum(['created_at', 'updated_at', 'domain']).optional(),
   sort_order: z.enum(['asc', 'desc']).optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
