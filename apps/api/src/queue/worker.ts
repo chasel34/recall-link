@@ -5,6 +5,7 @@ import type { Job } from '../features/jobs/jobs.db.js'
 import { acquireJob, completeJob, failJob, retryJob, failItem } from '../features/jobs/jobs.db.js'
 import { processFetchJob } from './processors/fetch.processor.js'
 import { processAIJob, shouldRetryAIError } from './processors/ai.processor.js'
+import { logger } from '../lib/logger.js'
 
 const POLL_INTERVAL_MS = 5000
 const MAX_ATTEMPTS = 3
@@ -22,23 +23,23 @@ let workerId: string | null = null
  */
 export function startWorker(config: WorkerConfig): void {
   if (!config.enabled) {
-    console.log('[worker] disabled')
+    logger.info('Worker disabled')
     return
   }
 
   workerId = `worker_${nanoid(8)}`
   const pollInterval = config.pollInterval ?? POLL_INTERVAL_MS
 
-  console.log(`[worker] starting ${workerId}`)
+  logger.info({ workerId, pollInterval }, 'Starting worker')
 
   workerInterval = setInterval(() => {
     processNextJob().catch((error) => {
-      console.error('[worker] Error in processNextJob:', error)
+      logger.error({ error: error.message, stack: error.stack }, 'Error in processNextJob')
     })
   }, pollInterval)
 
   processNextJob().catch((error) => {
-    console.error('[worker] Error in initial processNextJob:', error)
+    logger.error({ error: error.message, stack: error.stack }, 'Error in initial processNextJob')
   })
 }
 
@@ -49,7 +50,7 @@ export function stopWorker(): void {
   if (workerInterval) {
     clearInterval(workerInterval)
     workerInterval = null
-    console.log(`[worker] stopped ${workerId}`)
+    logger.info({ workerId }, 'Worker stopped')
     workerId = null
   }
 }
@@ -69,15 +70,22 @@ async function processNextJob(): Promise<void> {
     return
   }
 
-  console.log(`[worker] Acquired job ${job.id} (type: ${job.type}, attempt: ${job.attempt})`)
+  logger.info({ jobId: job.id, type: job.type, attempt: job.attempt }, 'Acquired job')
 
   try {
     await processJob(db, job)
 
     completeJob(db, job.id)
-    console.log(`[worker] Completed job ${job.id}`)
+    logger.info({ jobId: job.id }, 'Completed job')
   } catch (error) {
-    console.error(`[worker] Job ${job.id} failed:`, error)
+    logger.error(
+      {
+        jobId: job.id,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      },
+      'Job failed'
+    )
     await handleJobFailure(db, job, error as Error)
   }
 }
@@ -118,7 +126,10 @@ async function handleJobFailure(db: Database, job: Job, error: Error): Promise<v
     const delayMinutes = baseDelay * Math.pow(2, nextAttempt)
     const runAfter = new Date(Date.now() + delayMinutes * 60 * 1000).toISOString()
 
-    console.log(`[worker] Scheduling retry ${nextAttempt} for job ${job.id} after ${delayMinutes} min`)
+    logger.info(
+      { jobId: job.id, nextAttempt, delayMinutes, isRateLimit },
+      'Scheduling retry'
+    )
 
     retryJob(db, job.id, {
       attempt: nextAttempt,
@@ -126,7 +137,7 @@ async function handleJobFailure(db: Database, job: Job, error: Error): Promise<v
       error_message: error.message,
     })
   } else {
-    console.log(`[worker] Job ${job.id} failed permanently`)
+    logger.warn({ jobId: job.id, type: job.type, attempts: nextAttempt }, 'Job failed permanently')
     failJob(db, job.id, error.message)
     if (job.type === 'fetch' || job.type === 'ai_process') {
       failItem(db, job.item_id, error.message)
