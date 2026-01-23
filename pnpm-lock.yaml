@@ -87,6 +87,9 @@ importers:
       '@tanstack/react-router':
         specifier: ^1.154.7
         version: 1.154.14(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      agentation:
+        specifier: ^1.3.0
+        version: 1.3.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -2266,6 +2269,12 @@ packages:
   agent-base@7.1.4:
     resolution: {integrity: sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==}
     engines: {node: '>= 14'}
+
+  agentation@1.3.0:
+    resolution: {integrity: sha512-Mq05RrE00bC0lrGSSr1uj7pAT6SnEFGr9TtDgtYUHNH685OAjDgFobEgEV7jgUu0xCWIfIukH7n/Gy05plFw8Q==}
+    peerDependencies:
+      react: '>=18.0.0'
+      react-dom: '>=18.0.0'
 
   ai@6.0.41:
     resolution: {integrity: sha512-FaFKBiqOX3RKEz7PJ/K6d9+1JnHilzR4ID2elRzZ/yVGC5vM4RvVRyYHlhFso/gyQRXrQZtOSbqbBchAwcTDXg==}
@@ -6064,6 +6073,11 @@ snapshots:
   acorn@8.15.0: {}
 
   agent-base@7.1.4: {}
+
+  agentation@1.3.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+    dependencies:
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
 
   ai@6.0.41(zod@3.25.76):
     dependencies:

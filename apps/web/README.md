@@ -41,6 +41,15 @@ Create `.env` file:
 VITE_API_URL=http://localhost:8787
 ```
 
+## Dev Tools
+
+### Agentation
+
+Agentation is wired into the root route and only renders in development (`import.meta.env.DEV`).
+
+- Entry point: `src/routes/__root.tsx`
+- Package: `agentation`
+
 ## Project Structure
 
 ```
