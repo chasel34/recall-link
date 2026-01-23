@@ -1,15 +1,13 @@
 import { useState } from 'react'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Input,
+  Button,
+} from '@heroui/react'
 import { useCreateItem } from '@/hooks/use-create-item'
 import { z } from 'zod'
 
@@ -53,45 +51,45 @@ export function CreateItemDialog({ open, onOpenChange }: CreateItemDialogProps) 
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>保存网页</DialogTitle>
-          <DialogDescription>
-            输入网页 URL，系统将自动提取内容并生成摘要和标签
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <Input
-              placeholder="https://example.com/article"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              autoFocus
-            />
-
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-          </div>
-
-          <DialogFooter className="mt-6">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handleOpenChange(false)}
-            >
-              取消
-            </Button>
-            <Button type="submit" disabled={createMutation.isPending}>
-              {createMutation.isPending ? '保存中...' : '保存'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <Modal isOpen={open} onOpenChange={handleOpenChange} placement="center">
+      <ModalContent>
+        {() => (
+          <form onSubmit={handleSubmit}>
+            <ModalHeader className="flex flex-col gap-1">
+              保存网页
+            </ModalHeader>
+            <ModalBody>
+              <p className="text-sm text-default-500">
+                输入网页 URL，系统将自动提取内容并生成摘要和标签
+              </p>
+              <Input
+                placeholder="https://example.com/article"
+                value={url}
+                onValueChange={setUrl}
+                autoFocus
+                isInvalid={!!error}
+                errorMessage={error}
+                variant="bordered"
+              />
+            </ModalBody>
+            <ModalFooter>
+              <Button
+                variant="light"
+                onPress={() => handleOpenChange(false)}
+              >
+                取消
+              </Button>
+              <Button 
+                type="submit" 
+                color="primary"
+                isLoading={createMutation.isPending}
+              >
+                {createMutation.isPending ? '保存中...' : '保存'}
+              </Button>
+            </ModalFooter>
+          </form>
+        )}
+      </ModalContent>
+    </Modal>
   )
 }

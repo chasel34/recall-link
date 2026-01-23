@@ -9,10 +9,10 @@ Modern, type-safe React web interface for Recall Link.
 - **Vite** - Build tool
 - **TanStack Router** - File-based routing with type-safe params
 - **TanStack Query** - Server state management
-- **shadcn/ui** - UI components
+- **HeroUI** - UI components (Coffee theme)
 - **Tailwind CSS** - Styling
 - **Zustand** - Client state management
-- **Sonner** - Toast notifications
+- **HeroUI Toast** - Toast notifications
 
 ## Development
 
@@ -65,12 +65,6 @@ src/
 - ➕ Save new webpages
 - 🗑️ Delete items with confirmation
 - 📱 Responsive design (mobile/tablet/desktop)
-
-## Adding shadcn/ui Components
-
-```bash
-npx shadcn@latest add [component-name]
-```
 
 ## Routes
 

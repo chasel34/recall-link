@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearch } from '@tanstack/react-router'
-import { Input } from '@/components/ui/input'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { Button } from '@/components/ui/button'
+import { Input, Tabs, Tab, Button } from '@heroui/react'
 import { Search, Plus } from 'lucide-react'
 import { useSearchMode } from '@/hooks/use-search-mode'
 import { useTags } from '@/hooks/use-tags'
@@ -46,33 +44,32 @@ export function ItemsSearchBar({ onCreateClick }: ItemsSearchBarProps) {
   return (
     <div className="border-b p-4">
       <div className="flex items-center gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <div className="flex-1">
           <Input
             placeholder={mode === 'content' ? '搜索内容...' : '搜索标签...'}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="pl-10"
+            onValueChange={setQuery}
+            startContent={<Search className="h-4 w-4 text-default-400" />}
+            size="sm"
+            isClearable
+            classNames={{
+              inputWrapper: "bg-default-100",
+            }}
           />
         </div>
 
-        <ToggleGroup
-          type="single"
-          value={mode}
-          onValueChange={(value) => {
-            if (value) setMode(value as 'content' | 'tags')
-          }}
+        <Tabs
+          selectedKey={mode}
+          onSelectionChange={(key) => setMode(key as 'content' | 'tags')}
+          size="sm"
+          color="primary"
+          radius="md"
         >
-          <ToggleGroupItem value="content" aria-label="搜索内容">
-            内容
-          </ToggleGroupItem>
-          <ToggleGroupItem value="tags" aria-label="搜索标签">
-            标签
-          </ToggleGroupItem>
-        </ToggleGroup>
+          <Tab key="content" title="内容" />
+          <Tab key="tags" title="标签" />
+        </Tabs>
 
-        <Button onClick={onCreateClick}>
-          <Plus className="mr-2 h-4 w-4" />
+        <Button onPress={onCreateClick} color="primary" size="sm" startContent={<Plus className="h-4 w-4" />}>
           保存网页
         </Button>
       </div>
@@ -82,9 +79,9 @@ export function ItemsSearchBar({ onCreateClick }: ItemsSearchBarProps) {
           {filteredTags.map((tag) => (
             <Button
               key={tag.tag}
-              variant="outline"
+              variant="bordered"
               size="sm"
-              onClick={() => navigate({ to: '/items/tags/$tag', params: { tag: tag.tag } })}
+              onPress={() => navigate({ to: '/items/tags/$tag', params: { tag: tag.tag } })}
             >
               {tag.tag}
             </Button>

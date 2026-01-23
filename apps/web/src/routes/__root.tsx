@@ -1,7 +1,7 @@
 import { createRootRoute, Outlet } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/router-devtools'
 import { AppLayout } from '@/components/layout/app-layout'
-import { Toaster } from '@/components/ui/sonner'
+import { ToastProvider } from '@heroui/react'
 
 export const Route = createRootRoute({
   component: () => (
@@ -9,7 +9,7 @@ export const Route = createRootRoute({
       <AppLayout>
         <Outlet />
       </AppLayout>
-      <Toaster />
+      <ToastProvider placement="bottom-right" maxVisibleToasts={3} />
       <TanStackRouterDevtools />
     </>
   ),
