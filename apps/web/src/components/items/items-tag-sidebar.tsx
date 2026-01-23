@@ -25,7 +25,7 @@ export function ItemsTagSidebar() {
 
   const visibleTags =
     mode === 'tags' && query
-      ? tags?.filter((tag) => tag.tag.toLowerCase().includes(query.toLowerCase()))
+      ? tags?.filter((tag) => tag.name.toLowerCase().includes(query.toLowerCase()))
       : tags
 
   return (
@@ -49,21 +49,21 @@ export function ItemsTagSidebar() {
           <div className="space-y-1">
             {visibleTags?.map((tag) => (
               <Link
-                key={tag.tag}
+                key={tag.id}
                 to="/items/tags/$tag"
-                params={{ tag: tag.tag }}
+                params={{ tag: tag.name }}
                 className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all group ${
-                  currentTag === tag.tag
+                  currentTag === tag.name
                     ? 'bg-stone-200 text-stone-900 font-semibold'
                     : 'text-stone-500 hover:bg-stone-100 hover:text-stone-900'
                 }`}
               >
-                <span className="truncate font-medium">{tag.tag}</span>
+                <span className="truncate font-medium">{tag.name}</span>
                 <Chip
                   size="sm"
-                  variant={currentTag === tag.tag ? "solid" : "flat"}
+                  variant={currentTag === tag.name ? "solid" : "flat"}
                   className={`ml-2 h-5 min-w-5 px-0 flex justify-center ${
-                    currentTag === tag.tag
+                    currentTag === tag.name
                       ? 'bg-stone-800 text-white'
                       : 'bg-stone-100 text-stone-500 group-hover:bg-stone-200'
                   }`}
@@ -71,7 +71,7 @@ export function ItemsTagSidebar() {
                     content: "px-1 text-[10px] font-bold"
                   }}
                 >
-                  {tag.count}
+                  {tag.item_count}
                 </Chip>
               </Link>
             ))}

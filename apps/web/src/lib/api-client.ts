@@ -29,8 +29,10 @@ export interface ListItemsResponse {
 }
 
 export interface Tag {
-  tag: string
-  count: number
+  id: string
+  name: string
+  item_count: number
+  created_at: string
 }
 
 export interface UpdateItemDto {

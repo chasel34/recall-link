@@ -33,9 +33,7 @@ export function ItemsSearchBar({ onCreateClick }: ItemsSearchBarProps) {
       if (!query) {
         setFilteredTags(tags)
       } else {
-        const filtered = tags.filter((tag) =>
-          tag.tag.toLowerCase().includes(query.toLowerCase())
-        )
+        const filtered = tags.filter((tag) => tag.name.toLowerCase().includes(query.toLowerCase()))
         setFilteredTags(filtered)
       }
     }
@@ -78,12 +76,12 @@ export function ItemsSearchBar({ onCreateClick }: ItemsSearchBarProps) {
         <div className="mt-3 flex flex-wrap gap-2">
           {filteredTags.map((tag) => (
             <Button
-              key={tag.tag}
+              key={tag.id}
               variant="bordered"
               size="sm"
-              onPress={() => navigate({ to: '/items/tags/$tag', params: { tag: tag.tag } })}
+              onPress={() => navigate({ to: '/items/tags/$tag', params: { tag: tag.name } })}
             >
-              {tag.tag}
+              {tag.name}
             </Button>
           ))}
         </div>
