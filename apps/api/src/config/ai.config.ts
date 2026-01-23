@@ -29,7 +29,7 @@ export function getAIConfig(): AIConfig {
   const model = process.env.GEMINI_MODEL || fileConfig?.gemini.model || ''
 
   if (!apiKey) {
-    throw new Error('GEMINI_API_KEY is required (set via env var or config file)')
+    throw new Error('GEMINI_API_KEY is required (set via env var)')
   }
 
   if (!baseURL) {

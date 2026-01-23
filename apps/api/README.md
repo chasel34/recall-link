@@ -167,12 +167,16 @@ Delete an item and its related jobs.
 Set environment variables:
 
 ```bash
-GEMINI_BASE_URL=http://127.0.0.1:8317/v1beta
 GEMINI_API_KEY=your_api_key
+
+# Optional if you keep defaults in config/ai.json
+GEMINI_BASE_URL=http://127.0.0.1:8317/v1beta
 GEMINI_MODEL=gemini-3-flash-preview
 ```
 
-Or use `config/ai.json` for defaults.
+Notes:
+- `GEMINI_API_KEY` is required.
+- `GEMINI_BASE_URL` and `GEMINI_MODEL` can be provided via `config/ai.json` (see `apps/api/config/ai.json`).
 
 ### POST /api/items/:id/analyze
 

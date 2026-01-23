@@ -145,7 +145,7 @@ function getAIConfig(): AIConfig {
   // 3. 合并：环境变量覆盖配置文件
   return {
     baseURL: process.env.GEMINI_BASE_URL || config.gemini.baseURL,
-    apiKey: process.env.GEMINI_API_KEY || config.gemini.apiKey || '',
+    apiKey: process.env.GEMINI_API_KEY || '',
     model: process.env.GEMINI_MODEL || config.gemini.model
   }
 }
