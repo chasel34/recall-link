@@ -1,7 +1,6 @@
 import { Link, useParams, useSearch } from '@tanstack/react-router'
 import { useTags } from '@/hooks/use-tags'
-import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Chip, Skeleton } from '@heroui/react'
 import { useSearchMode } from '@/hooks/use-search-mode'
 
 export function ItemsTagSidebar() {
@@ -14,9 +13,11 @@ export function ItemsTagSidebar() {
 
   if (isLoading) {
     return (
-      <div className="w-48 border-r p-4 space-y-2">
+      <div className="w-48 border-r border-stone-100 p-4 space-y-2 bg-[#FDFBF7]/50">
         {[...Array(8)].map((_, i) => (
-          <Skeleton key={i} className="h-6 w-full" />
+          <Skeleton key={i} className="rounded-md">
+            <div className="h-8 w-full bg-default-200" />
+          </Skeleton>
         ))}
       </div>
     )
@@ -28,21 +29,21 @@ export function ItemsTagSidebar() {
       : tags
 
   return (
-    <div className="w-48 border-r p-4">
+    <div className="w-48 border-r border-stone-200 p-4 bg-[#FDFBF7]/30 min-h-screen">
       <div className="space-y-1">
         <Link
           to="/items"
-          className={`block px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+          className={`block px-3 py-2 rounded-lg text-sm font-medium transition-all ${
             !currentTag
-              ? 'bg-primary text-primary-foreground'
-              : 'text-muted-foreground hover:bg-muted'
+              ? 'bg-stone-800 text-stone-50 shadow-sm'
+              : 'text-stone-500 hover:bg-stone-100 hover:text-stone-900'
           }`}
         >
           全部
         </Link>
 
-        <div className="mt-4">
-          <h3 className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+        <div className="mt-6">
+          <h3 className="px-3 text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-3">
             标签
           </h3>
           <div className="space-y-1">
@@ -51,16 +52,27 @@ export function ItemsTagSidebar() {
                 key={tag.tag}
                 to="/items/tags/$tag"
                 params={{ tag: tag.tag }}
-                className={`flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors ${
+                className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all group ${
                   currentTag === tag.tag
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-muted'
+                    ? 'bg-stone-200 text-stone-900 font-semibold'
+                    : 'text-stone-500 hover:bg-stone-100 hover:text-stone-900'
                 }`}
               >
-                <span className="truncate">{tag.tag}</span>
-                <Badge variant="secondary" className="ml-2">
+                <span className="truncate font-medium">{tag.tag}</span>
+                <Chip
+                  size="sm"
+                  variant={currentTag === tag.tag ? "solid" : "flat"}
+                  className={`ml-2 h-5 min-w-5 px-0 flex justify-center ${
+                    currentTag === tag.tag
+                      ? 'bg-stone-800 text-white'
+                      : 'bg-stone-100 text-stone-500 group-hover:bg-stone-200'
+                  }`}
+                  classNames={{
+                    content: "px-1 text-[10px] font-bold"
+                  }}
+                >
                   {tag.count}
-                </Badge>
+                </Chip>
               </Link>
             ))}
           </div>

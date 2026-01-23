@@ -1,36 +1,53 @@
-import { Skeleton } from '@/components/ui/skeleton'
+import { Skeleton } from '@heroui/react'
 
 export function ItemDetailSkeleton() {
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center gap-4">
-        <Skeleton className="h-9 w-20" />
-        <Skeleton className="h-9 w-24" />
-        <Skeleton className="h-9 w-16" />
-      </div>
-
-      <div className="space-y-4">
-        <Skeleton className="h-8 w-3/4" />
-        <Skeleton className="h-4 w-1/2" />
-        <Skeleton className="h-4 w-1/3" />
-      </div>
-
-      <div className="border-t pt-6 space-y-2">
-        <Skeleton className="h-4 w-20" />
-        <Skeleton className="h-16 w-full" />
-      </div>
-
-      <div className="border-t pt-6 space-y-2">
-        <Skeleton className="h-4 w-16" />
+    <div className="max-w-4xl mx-auto px-6 py-8">
+      <div className="flex items-center justify-between mb-8 pb-4 border-b border-stone-200">
+        <Skeleton className="rounded-lg w-20 h-8" />
         <div className="flex gap-2">
-          <Skeleton className="h-6 w-16" />
-          <Skeleton className="h-6 w-16" />
-          <Skeleton className="h-6 w-16" />
+          <Skeleton className="rounded-lg w-24 h-8" />
+          <Skeleton className="rounded-lg w-16 h-8" />
         </div>
       </div>
 
-      <div className="border-t pt-6 space-y-4">
-        <Skeleton className="h-64 w-full" />
+      <div className="mb-10 flex flex-col items-center">
+        <Skeleton className="rounded-full w-20 h-20 mb-6" />
+        <Skeleton className="rounded-lg w-3/4 h-12 mb-4" />
+        <Skeleton className="rounded-full w-64 h-6" />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-10">
+        <div className="space-y-8">
+          <Skeleton className="rounded-xl w-full h-32" />
+
+          <div className="space-y-4">
+             <Skeleton className="rounded-lg w-32 h-8" />
+             <div className="space-y-2">
+               <Skeleton className="rounded-lg w-full h-4" />
+               <Skeleton className="rounded-lg w-full h-4" />
+               <Skeleton className="rounded-lg w-5/6 h-4" />
+               <Skeleton className="rounded-lg w-full h-4" />
+               <Skeleton className="rounded-lg w-4/6 h-4" />
+             </div>
+             <div className="space-y-2 mt-4">
+               <Skeleton className="rounded-lg w-full h-32" />
+             </div>
+          </div>
+        </div>
+
+        <div className="space-y-8">
+           <div className="space-y-3">
+             <Skeleton className="rounded w-12 h-4" />
+             <div className="flex gap-2 flex-wrap">
+               <Skeleton className="rounded-full w-16 h-6" />
+               <Skeleton className="rounded-full w-20 h-6" />
+               <Skeleton className="rounded-full w-14 h-6" />
+             </div>
+           </div>
+          
+           <Skeleton className="rounded-lg w-full h-32" />
+        </div>
       </div>
     </div>
   )
