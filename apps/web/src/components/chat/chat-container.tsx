@@ -1,12 +1,12 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { useEffect, useRef, useState } from "react"
-import { apiClient, ChatMessage } from "../../lib/api-client"
+import { apiClient, ChatMessage, ChatSource } from "../../lib/api-client"
+import { useChatMessages } from "../../hooks/use-chat-messages"
 import { ChatLayout } from "./chat-layout"
 import { Composer } from "./composer"
 import { MessageList } from "./message-list"
 import { SessionsList } from "./sessions-list"
-import { Source, SourceCard } from "./source-card"
 import { SourcesPanel } from "./sources-panel"
 
 interface ChatContainerProps {
@@ -18,28 +18,29 @@ export function ChatContainer({ sessionId, initialMessage }: ChatContainerProps)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [sources, setSources] = useState<Source[]>([])
+  const [sources, setSources] = useState<ChatSource[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const abortControllerRef = useRef<AbortController | null>(null)
+  const streamingUserIdRef = useRef<string | null>(null)
+  const streamingAssistantIdRef = useRef<string | null>(null)
   const isFirstRender = useRef(true)
 
   // Fetch messages if sessionId exists
-  const { data: historyData, isLoading: isLoadingHistory } = useQuery({
-    queryKey: ['chat-messages', sessionId],
-    queryFn: () => sessionId ? apiClient.listChatMessages(sessionId) : Promise.resolve({ messages: [] }),
-    enabled: !!sessionId,
-  })
+  const { data: historyData, isLoading: isLoadingHistory } = useChatMessages(sessionId || "")
 
   // Sync history to local state
   useEffect(() => {
     if (historyData?.messages) {
       setMessages(historyData.messages)
       const lastMsg = historyData.messages[historyData.messages.length - 1]
-      if (lastMsg?.role === 'assistant' && lastMsg.meta?.sources) {
-        setSources(lastMsg.meta.sources)
-      } else {
-        setSources([])
-      }
+      if (lastMsg?.role === 'assistant' && lastMsg.meta_json) {
+        try {
+          const meta = JSON.parse(lastMsg.meta_json) as { sources?: ChatSource[] }
+          setSources(meta.sources ?? [])
+        } catch {
+          setSources([])
+        }
+      } else setSources([])
     }
   }, [historyData])
 
@@ -53,8 +54,8 @@ export function ChatContainer({ sessionId, initialMessage }: ChatContainerProps)
 
   const createSessionMutation = useMutation({
     mutationFn: () => apiClient.createChatSession(),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['chat-sessions'] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['chat', 'sessions'] })
     }
   })
 
@@ -75,8 +76,10 @@ export function ChatContainer({ sessionId, initialMessage }: ChatContainerProps)
         currentSessionId = session.id
         
         navigate({ 
-          to: `/chat/${session.id}`, 
-          search: { q: content } as any 
+          to: '/chat/$id',
+          params: { id: session.id },
+          search: { q: content },
+          replace: true
         })
         return
       } catch (err) {
@@ -88,9 +91,11 @@ export function ChatContainer({ sessionId, initialMessage }: ChatContainerProps)
     const userMsgId = `temp-${Date.now()}`
     const userMsg: ChatMessage = {
       id: userMsgId,
+      session_id: currentSessionId,
       role: 'user',
       content,
-      created_at: new Date().toISOString()
+      meta_json: null,
+      created_at: new Date().toISOString(),
     }
     setMessages(prev => [...prev, userMsg])
     setIsStreaming(true)
@@ -101,45 +106,63 @@ export function ChatContainer({ sessionId, initialMessage }: ChatContainerProps)
     const assistantMsgId = `temp-ai-${Date.now()}`
     const assistantMsg: ChatMessage = {
       id: assistantMsgId,
+      session_id: currentSessionId,
       role: 'assistant',
       content: '',
-      created_at: new Date().toISOString()
+      meta_json: null,
+      created_at: new Date().toISOString(),
     }
     setMessages(prev => [...prev, assistantMsg])
 
+    streamingUserIdRef.current = userMsgId
+    streamingAssistantIdRef.current = assistantMsgId
+
     try {
-      await apiClient.sendChatMessageStream(currentSessionId, content, {
-        signal: abortControllerRef.current.signal,
-        onMeta: (meta) => {
-          if (meta.sources) {
-            setSources(meta.sources)
-          }
-          if (meta.user_message_id && meta.assistant_message_id) {
-            setMessages(prev => prev.map(m => {
-              if (m.id === userMsgId) return { ...m, id: meta.user_message_id }
-              if (m.id === assistantMsgId) return { ...m, id: meta.assistant_message_id, meta }
-              return m
-            }))
-          }
-        },
-        onDelta: (delta) => {
-          setMessages(prev => prev.map(m => {
-            if (m.id === assistantMsgId || (m.role === 'assistant' && m.id === prev[prev.length-1].id)) {
-              return { ...m, content: m.content + delta }
+        apiClient.sendChatMessageStream(currentSessionId, content, {
+          signal: abortControllerRef.current.signal,
+          onMeta: (meta) => {
+            if (meta.sources) {
+              setSources(meta.sources)
             }
-            return m
-          }))
-        },
-        onDone: () => {
-          setIsStreaming(false)
-          abortControllerRef.current = null
-          queryClient.invalidateQueries({ queryKey: ['chat-sessions'] })
-        },
-        onError: (err) => {
-          console.error("Streaming error", err)
-          setIsStreaming(false)
-        }
-      })
+            if (meta.user_message_id && meta.assistant_message_id) {
+              streamingUserIdRef.current = meta.user_message_id
+              streamingAssistantIdRef.current = meta.assistant_message_id
+              setMessages(prev => prev.map(m => {
+                if (m.id === userMsgId) return { ...m, id: meta.user_message_id }
+                if (m.id === assistantMsgId) {
+                  return {
+                    ...m,
+                    id: meta.assistant_message_id,
+                    meta_json: JSON.stringify({ sources: meta.sources }),
+                  }
+                }
+                return m
+              }))
+            }
+          },
+          onDelta: (delta) => {
+            const assistantId = streamingAssistantIdRef.current
+            if (!assistantId) return
+            setMessages(prev => prev.map(m => {
+              if (m.id !== assistantId) return m
+              return { ...m, content: m.content + delta }
+            }))
+          },
+          onDone: () => {
+            setIsStreaming(false)
+            abortControllerRef.current = null
+            streamingUserIdRef.current = null
+            streamingAssistantIdRef.current = null
+            queryClient.invalidateQueries({ queryKey: ['chat', 'sessions'] })
+            queryClient.invalidateQueries({ queryKey: ['chat', 'messages', currentSessionId] })
+          },
+          onError: (err) => {
+            console.error("Streaming error", err)
+            setIsStreaming(false)
+            streamingUserIdRef.current = null
+            streamingAssistantIdRef.current = null
+          }
+        })
     } catch (err) {
       console.error("Send error", err)
       setIsStreaming(false)
@@ -163,16 +186,16 @@ export function ChatContainer({ sessionId, initialMessage }: ChatContainerProps)
       }
       showSources={sources.length > 0}
     >
-      <div className="flex flex-col h-full w-full">
-        <div className="flex-1 overflow-hidden relative">
+      <div className="flex flex-col h-full w-full min-h-0">
+        <div className="flex-1 min-h-0 overflow-hidden relative">
           {messages.length === 0 && !isLoadingHistory ? (
              <div className="h-full flex flex-col items-center justify-center p-8 text-center space-y-4">
-               <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-                 <div className="i-lucide-sparkles w-8 h-8 text-primary" />
-               </div>
-               <h2 className="text-2xl font-bold">How can I help you today?</h2>
+                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+                  <div className="i-lucide-sparkles w-8 h-8 text-primary" />
+                </div>
+               <h2 className="text-2xl font-bold">Recall Link AI</h2>
                <p className="text-default-500 max-w-md">
-                 Ask me about your saved items, or let me help you find connections between them.
+                 Ask questions about your saved items. I'll search through them and provide answers with sources.
                </p>
              </div>
           ) : (

@@ -1,15 +1,10 @@
-import { Card, CardBody, CardFooter, Link } from "@heroui/react"
+import { Card, CardBody, CardFooter, Button } from "@heroui/react"
 import { ExternalLink, FileText } from "lucide-react"
-
-export interface Source {
-  item_id?: string
-  title?: string
-  url?: string
-  snippet?: string
-}
+import { Link } from "@tanstack/react-router"
+import type { ChatSource } from "@/lib/api-client"
 
 interface SourceCardProps {
-  source: Source
+  source: ChatSource
 }
 
 export function SourceCard({ source }: SourceCardProps) {
@@ -34,25 +29,27 @@ export function SourceCard({ source }: SourceCardProps) {
       </CardBody>
       <CardFooter className="p-3 pt-0 flex justify-end gap-2">
         {source.item_id && (
-          <Link
-            href={`/items/${source.item_id}`}
-            color="primary"
+          <Button
+            as={Link}
+            to={`/items/${source.item_id}`}
             size="sm"
-            className="text-xs"
+            variant="light"
+            color="primary"
+            className="text-xs h-7 min-w-0 px-2"
           >
-            View Item
-          </Link>
+            详情
+          </Button>
         )}
         {source.url && (
-          <Link
-            isExternal
-            href={source.url}
-            color="foreground"
+          <Button
             size="sm"
-            className="text-xs gap-1 text-default-500 hover:text-foreground"
+            variant="light"
+            className="text-xs h-7 min-w-0 px-2 text-default-500"
+            onPress={() => window.open(source.url, '_blank', 'noopener,noreferrer')}
+            endContent={<ExternalLink className="w-3 h-3" />}
           >
-            Open <ExternalLink className="w-3 h-3" />
-          </Link>
+            打开原文
+          </Button>
         )}
       </CardFooter>
     </Card>

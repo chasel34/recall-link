@@ -7,6 +7,7 @@ import { getItemById } from '../../features/items/items.db.js'
 import { generateId } from '../../lib/utils.js'
 import { sanitizeReadabilityHtmlInWindow } from '../../lib/sanitize.js'
 import { publishItemUpdated } from '../../features/events/events.bus.js'
+import { replaceItemFts } from '../../features/items/items.fts.js'
 
 /**
  * Process fetch job - download webpage and extract content
@@ -52,6 +53,8 @@ export async function processFetchJob(db: Database, job: Job): Promise<void> {
     clean_html: cleanHtml,
     status: 'completed',
   })
+
+  replaceItemFts(db, item.id)
 
   console.log(`[fetch] Completed ${item.url}`)
 

@@ -4,6 +4,7 @@ import { getItemById } from '../../features/items/items.db.js'
 import { generateTagsAndSummary, mergeTagsWithExisting } from '../../services/ai.service.js'
 import { getAllTagNames, setItemTags } from '../../features/tags/tags.db.js'
 import { publishItemUpdated } from '../../features/events/events.bus.js'
+import { replaceItemFts } from '../../features/items/items.fts.js'
 
 export async function processAIJob(db: Database, job: Job): Promise<void> {
   const item = getItemById(db, job.item_id)
@@ -33,6 +34,8 @@ export async function processAIJob(db: Database, job: Job): Promise<void> {
     ).run(summary, now, item.id)
 
     setItemTags(db, item.id, mergedTags)
+
+    replaceItemFts(db, item.id)
   })()
 
   console.log(`[ai] Completed ${item.url} - Tags: ${mergedTags.join(', ')}`)

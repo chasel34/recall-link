@@ -5,6 +5,7 @@ import { AppLayout } from '@/components/layout/app-layout'
 import { addToast, ToastProvider } from '@heroui/react'
 import { queryClient } from '@/lib/query-client'
 import type { Item, ListItemsResponse } from '@/lib/api-client'
+import { subscribeSSE } from '@/lib/sse'
 
 function AgentationDev() {
   const [Component, setComponent] = React.useState<React.ComponentType | null>(
@@ -46,8 +47,6 @@ type ItemUpdatedEnvelope = {
 function Root() {
   React.useEffect(() => {
     const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8787'
-    const es = new EventSource(`${apiBase}/api/items/events`)
-
     const onItemUpdated = (event: MessageEvent) => {
       let payload: ItemUpdatedEnvelope
       try {
@@ -98,11 +97,18 @@ function Root() {
       }
     }
 
-    es.addEventListener('item.updated', onItemUpdated)
+    const sub = subscribeSSE({
+      url: `${apiBase}/api/items/events`,
+      method: 'GET',
+      events: ['item.updated'],
+      onEvent: (e) => {
+        if (e.event !== 'item.updated') return
+        onItemUpdated({ data: e.data } as MessageEvent)
+      },
+    })
 
     return () => {
-      es.removeEventListener('item.updated', onItemUpdated)
-      es.close()
+      sub.close()
     }
   }, [])
 

@@ -1,5 +1,6 @@
 import type { Database } from 'better-sqlite3'
 import { setItemTags } from '../tags/tags.db.js'
+import { deleteItemFts, replaceItemFts } from './items.fts.js'
 
 export type Item = {
   id: string
@@ -283,6 +284,11 @@ export function updateItem(db: Database, id: string, updates: UpdateItemData): {
     const sql = `UPDATE items SET ${sets.join(', ')} WHERE id = ?`
     const result = db.prepare(sql).run(...params)
 
+    // Keep FTS in sync for search/chat RAG.
+    if (updates.summary !== undefined || updates.tags !== undefined) {
+      replaceItemFts(db, id)
+    }
+
     return { changes: result.changes }
   })()
 }
@@ -301,6 +307,8 @@ export function deleteItem(db: Database, id: string): { deletedItem: number; del
 
     const jobResult = db.prepare('DELETE FROM jobs WHERE item_id = ?').run(id)
     const itemResult = db.prepare('DELETE FROM items WHERE id = ?').run(id)
+
+    deleteItemFts(db, id)
 
     const updateStmt = db.prepare(`
       UPDATE tags

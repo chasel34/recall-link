@@ -1,6 +1,8 @@
 -- items
 CREATE TABLE IF NOT EXISTS items (
   id TEXT PRIMARY KEY,
+  -- Nullable for now. Future: populate from auth context.
+  user_id TEXT,
   url TEXT NOT NULL,
   url_normalized TEXT NOT NULL UNIQUE,
   title TEXT,
@@ -18,13 +20,19 @@ CREATE TABLE IF NOT EXISTS items (
   processed_at TEXT
 );
 
+CREATE INDEX IF NOT EXISTS idx_items_user_id_created_at ON items(user_id, created_at);
+
 -- tags
 CREATE TABLE IF NOT EXISTS tags (
   id TEXT PRIMARY KEY,
+  -- Nullable for now. Future: populate from auth context.
+  user_id TEXT,
   name TEXT NOT NULL UNIQUE,
   created_at TEXT NOT NULL,
   item_count INTEGER DEFAULT 0
 );
+
+CREATE INDEX IF NOT EXISTS idx_tags_user_id_name ON tags(user_id, name);
 
 -- item-tags
 CREATE TABLE IF NOT EXISTS item_tags (
@@ -68,3 +76,31 @@ CREATE VIRTUAL TABLE IF NOT EXISTS items_fts USING fts5(
   tags,
   clean_text
 );
+
+-- chat sessions
+CREATE TABLE IF NOT EXISTS chat_sessions (
+  id TEXT PRIMARY KEY,
+  -- Nullable for now. Future: populate from auth context.
+  user_id TEXT,
+  title TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_user_id_updated_at ON chat_sessions(user_id, updated_at);
+
+-- chat messages
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  -- Nullable for now. Future: populate from auth context.
+  user_id TEXT,
+  role TEXT NOT NULL,
+  content TEXT NOT NULL,
+  meta_json TEXT,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_messages_session_id_created_at ON chat_messages(session_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_user_id_created_at ON chat_messages(user_id, created_at);

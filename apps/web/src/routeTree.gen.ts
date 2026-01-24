@@ -11,7 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ItemsIndexRouteImport } from './routes/items/index'
+import { Route as ChatIndexRouteImport } from './routes/chat/index'
 import { Route as ItemsIdRouteImport } from './routes/items/$id'
+import { Route as ChatIdRouteImport } from './routes/chat/$id'
 import { Route as ItemsTagsTagRouteImport } from './routes/items/tags/$tag'
 
 const IndexRoute = IndexRouteImport.update({
@@ -24,9 +26,19 @@ const ItemsIndexRoute = ItemsIndexRouteImport.update({
   path: '/items/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChatIndexRoute = ChatIndexRouteImport.update({
+  id: '/chat/',
+  path: '/chat/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ItemsIdRoute = ItemsIdRouteImport.update({
   id: '/items/$id',
   path: '/items/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChatIdRoute = ChatIdRouteImport.update({
+  id: '/chat/$id',
+  path: '/chat/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ItemsTagsTagRoute = ItemsTagsTagRouteImport.update({
@@ -37,34 +49,55 @@ const ItemsTagsTagRoute = ItemsTagsTagRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/chat/$id': typeof ChatIdRoute
   '/items/$id': typeof ItemsIdRoute
+  '/chat/': typeof ChatIndexRoute
   '/items/': typeof ItemsIndexRoute
   '/items/tags/$tag': typeof ItemsTagsTagRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/chat/$id': typeof ChatIdRoute
   '/items/$id': typeof ItemsIdRoute
+  '/chat': typeof ChatIndexRoute
   '/items': typeof ItemsIndexRoute
   '/items/tags/$tag': typeof ItemsTagsTagRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/chat/$id': typeof ChatIdRoute
   '/items/$id': typeof ItemsIdRoute
+  '/chat/': typeof ChatIndexRoute
   '/items/': typeof ItemsIndexRoute
   '/items/tags/$tag': typeof ItemsTagsTagRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/items/$id' | '/items/' | '/items/tags/$tag'
+  fullPaths:
+    | '/'
+    | '/chat/$id'
+    | '/items/$id'
+    | '/chat/'
+    | '/items/'
+    | '/items/tags/$tag'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/items/$id' | '/items' | '/items/tags/$tag'
-  id: '__root__' | '/' | '/items/$id' | '/items/' | '/items/tags/$tag'
+  to: '/' | '/chat/$id' | '/items/$id' | '/chat' | '/items' | '/items/tags/$tag'
+  id:
+    | '__root__'
+    | '/'
+    | '/chat/$id'
+    | '/items/$id'
+    | '/chat/'
+    | '/items/'
+    | '/items/tags/$tag'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ChatIdRoute: typeof ChatIdRoute
   ItemsIdRoute: typeof ItemsIdRoute
+  ChatIndexRoute: typeof ChatIndexRoute
   ItemsIndexRoute: typeof ItemsIndexRoute
   ItemsTagsTagRoute: typeof ItemsTagsTagRoute
 }
@@ -85,11 +118,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ItemsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/chat/': {
+      id: '/chat/'
+      path: '/chat'
+      fullPath: '/chat/'
+      preLoaderRoute: typeof ChatIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/items/$id': {
       id: '/items/$id'
       path: '/items/$id'
       fullPath: '/items/$id'
       preLoaderRoute: typeof ItemsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chat/$id': {
+      id: '/chat/$id'
+      path: '/chat/$id'
+      fullPath: '/chat/$id'
+      preLoaderRoute: typeof ChatIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/items/tags/$tag': {
@@ -104,7 +151,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ChatIdRoute: ChatIdRoute,
   ItemsIdRoute: ItemsIdRoute,
+  ChatIndexRoute: ChatIndexRoute,
   ItemsIndexRoute: ItemsIndexRoute,
   ItemsTagsTagRoute: ItemsTagsTagRoute,
 }

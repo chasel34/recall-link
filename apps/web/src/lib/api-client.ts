@@ -1,3 +1,5 @@
+import { subscribeSSE } from './sse'
+
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8787'
 
 export interface Item {
@@ -42,26 +44,47 @@ export interface UpdateItemDto {
   note?: string
 }
 
-export interface ChatSession {
+export type ChatSession = {
   id: string
   title: string | null
+  created_at: string
   updated_at: string
 }
 
-export interface ChatMessage {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
-  created_at: string
-  meta?: any
+export type ChatMessageRole = 'user' | 'assistant' | 'system'
+
+export type ChatSource = {
+  item_id: string
+  url: string
+  title: string | null
+  snippet: string
 }
 
-export interface SendMessageOptions {
-  onMeta?: (meta: any) => void
-  onDelta?: (delta: string) => void
-  onDone?: () => void
-  onError?: (error: Error) => void
-  signal?: AbortSignal
+export type ChatMessage = {
+  id: string
+  session_id: string
+  role: ChatMessageRole
+  content: string
+  meta_json: string | null
+  created_at: string
+}
+
+export type ListChatSessionsResponse = {
+  sessions: ChatSession[]
+  total: number
+  limit: number
+  offset: number
+}
+
+export type ListChatMessagesResponse = {
+  messages: ChatMessage[]
+}
+
+export type ChatStreamMeta = {
+  session_id: string
+  user_message_id: string
+  assistant_message_id: string
+  sources: ChatSource[]
 }
 
 class ApiClient {
@@ -80,82 +103,6 @@ class ApiClient {
     }
 
     return response.json()
-  }
-
-  async listChatSessions(): Promise<{ sessions: ChatSession[] }> {
-    return this.request<{ sessions: ChatSession[] }>('/api/chat/sessions')
-  }
-
-  async createChatSession(): Promise<ChatSession> {
-    return this.request<ChatSession>('/api/chat/sessions', {
-      method: 'POST',
-    })
-  }
-
-  async listChatMessages(sessionId: string): Promise<{ messages: ChatMessage[] }> {
-    return this.request<{ messages: ChatMessage[] }>(`/api/chat/sessions/${sessionId}/messages`)
-  }
-
-  async sendChatMessageStream(
-    sessionId: string, 
-    content: string, 
-    options: SendMessageOptions
-  ): Promise<void> {
-    try {
-      const response = await fetch(`${API_BASE}/api/chat/sessions/${sessionId}/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ content }),
-        signal: options.signal,
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`)
-      }
-
-      const reader = response.body?.getReader()
-      if (!reader) throw new Error('No response body')
-
-      const decoder = new TextDecoder()
-      let buffer = ''
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n\n')
-        buffer = lines.pop() || ''
-
-        for (const line of lines) {
-          const match = line.match(/^event: (.+)\ndata: (.+)$/s)
-          if (!match) continue
-          
-          const [, event, data] = match
-          
-          if (event === 'meta') {
-            options.onMeta?.(JSON.parse(data))
-          } else if (event === 'delta') {
-            try {
-              const json = JSON.parse(data)
-              options.onDelta?.(json.delta)
-            } catch (e) {
-              console.warn('Failed to parse delta', e)
-            }
-          } else if (event === 'done') {
-            options.onDone?.()
-            return
-          }
-        }
-      }
-    } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') {
-        return
-      }
-      options.onError?.(err instanceof Error ? err : new Error('Unknown error'))
-    }
   }
 
   async listItems(params: ListItemsParams = {}): Promise<ListItemsResponse> {
@@ -197,6 +144,82 @@ class ApiClient {
   async listTags(): Promise<Tag[]> {
     const response = await this.request<{ tags: Tag[] }>('/api/tags')
     return response.tags
+  }
+
+  async listChatSessions(params: { limit?: number; offset?: number } = {}): Promise<ListChatSessionsResponse> {
+    const searchParams = new URLSearchParams()
+    if (params.limit) searchParams.set('limit', params.limit.toString())
+    if (params.offset) searchParams.set('offset', params.offset.toString())
+    const query = searchParams.toString()
+    return this.request<ListChatSessionsResponse>(`/api/chat/sessions${query ? `?${query}` : ''}`)
+  }
+
+  async createChatSession(title?: string): Promise<ChatSession> {
+    return this.request<ChatSession>('/api/chat/sessions', {
+      method: 'POST',
+      body: JSON.stringify(title ? { title } : {}),
+    })
+  }
+
+  async listChatMessages(
+    sessionId: string,
+    params: { limit?: number; before?: string } = {}
+  ): Promise<ListChatMessagesResponse> {
+    const searchParams = new URLSearchParams()
+    if (params.limit) searchParams.set('limit', params.limit.toString())
+    if (params.before) searchParams.set('before', params.before)
+    const query = searchParams.toString()
+    return this.request<ListChatMessagesResponse>(
+      `/api/chat/sessions/${sessionId}/messages${query ? `?${query}` : ''}`
+    )
+  }
+
+  sendChatMessageStream(
+    sessionId: string,
+    message: string,
+    opts: {
+      onMeta: (meta: ChatStreamMeta) => void
+      onDelta: (delta: string) => void
+      onDone?: (data: { assistant_message_id: string }) => void
+      onError?: (data: { error: string; message: string }) => void
+      signal?: AbortSignal
+    }
+  ): { close: () => void } {
+    const url = `${API_BASE}/api/chat/sessions/${sessionId}/messages`
+
+    return subscribeSSE({
+      url,
+      method: 'POST',
+      body: JSON.stringify({ message }),
+      signal: opts.signal,
+      onEvent: (evt) => {
+        if (evt.event === 'meta') {
+          opts.onMeta(JSON.parse(evt.data) as ChatStreamMeta)
+          return
+        }
+        if (evt.event === 'delta') {
+          try {
+            const parsed = JSON.parse(evt.data) as { delta?: unknown }
+            if (typeof parsed.delta === 'string') {
+              opts.onDelta(parsed.delta)
+            }
+          } catch {
+            // ignore malformed delta chunks
+          }
+          return
+        }
+        if (evt.event === 'done') {
+          opts.onDone?.(JSON.parse(evt.data) as { assistant_message_id: string })
+          return
+        }
+        if (evt.event === 'error') {
+          opts.onError?.(JSON.parse(evt.data) as { error: string; message: string })
+        }
+      },
+      onError: (err) => {
+        opts.onError?.({ error: 'NETWORK_ERROR', message: err instanceof Error ? err.message : String(err) })
+      },
+    })
   }
 }
 

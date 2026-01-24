@@ -1,6 +1,7 @@
 import { Button, Textarea } from "@heroui/react"
 import { ArrowUp, Square } from "lucide-react"
 import { useRef, useState } from "react"
+import type { KeyboardEvent } from 'react'
 
 interface ComposerProps {
   onSend: (content: string) => void
@@ -13,7 +14,7 @@ export function Composer({ onSend, onStop, isStreaming, isLoading }: ComposerPro
   const [value, setValue] = useState("")
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
       handleSubmit()

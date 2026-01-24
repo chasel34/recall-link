@@ -1,8 +1,9 @@
 import { ScrollShadow } from "@heroui/react"
-import { Source, SourceCard } from "./source-card"
+import { ChatSource } from "../../lib/api-client"
+import { SourceCard } from "./source-card"
 
 interface SourcesPanelProps {
-  sources: Source[]
+  sources: ChatSource[]
 }
 
 export function SourcesPanel({ sources }: SourcesPanelProps) {
@@ -17,13 +18,13 @@ export function SourcesPanel({ sources }: SourcesPanelProps) {
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col min-h-0">
       <div className="p-4 border-b border-default-100 dark:border-default-50">
         <h3 className="font-semibold text-sm text-default-600 uppercase tracking-wider">
           Sources ({sources.length})
         </h3>
       </div>
-      <ScrollShadow className="flex-1 p-4">
+      <ScrollShadow className="flex-1 p-4 overflow-y-auto">
         <div className="flex flex-col gap-3">
           {sources.map((source, i) => (
             <SourceCard key={`${source.item_id}-${i}`} source={source} />

@@ -1,8 +1,7 @@
 import { Button, Listbox, ListboxItem, ScrollShadow } from "@heroui/react"
-import { useQuery } from "@tanstack/react-query"
-import { Link, useNavigate, useParams } from "@tanstack/react-router"
+import { useNavigate } from "@tanstack/react-router"
 import { MessageSquarePlus } from "lucide-react"
-import { apiClient } from "../../lib/api-client"
+import { useChatSessions } from "../../hooks/use-chat-sessions"
 import { cn } from "../../lib/utils"
 
 interface SessionsListProps {
@@ -12,15 +11,12 @@ interface SessionsListProps {
 
 export function SessionsList({ currentSessionId, onNewChat }: SessionsListProps) {
   const navigate = useNavigate()
-  const { data, isLoading } = useQuery({
-    queryKey: ['chat-sessions'],
-    queryFn: () => apiClient.listChatSessions(),
-  })
+  const { data, isLoading } = useChatSessions()
 
   const sessions = data?.sessions || []
 
   return (
-    <div className="flex flex-col h-full w-full">
+    <div className="flex flex-col h-full w-full min-h-0">
       <div className="p-4 border-b border-default-100">
         <Button 
           className="w-full justify-start font-medium" 
@@ -32,11 +28,11 @@ export function SessionsList({ currentSessionId, onNewChat }: SessionsListProps)
             navigate({ to: '/chat' })
           }}
         >
-          New Chat
+          新对话
         </Button>
       </div>
       
-      <ScrollShadow className="flex-1">
+      <ScrollShadow className="flex-1 overflow-y-auto">
         {isLoading ? (
           <div className="p-4 space-y-2">
             {[1, 2, 3].map((i) => (
@@ -51,6 +47,7 @@ export function SessionsList({ currentSessionId, onNewChat }: SessionsListProps)
               disallowEmptySelection
               selectionMode="single"
               selectedKeys={currentSessionId ? [currentSessionId] : []}
+              onAction={(key) => navigate({ to: `/chat/${key}` })}
               classNames={{
                 list: "gap-1"
               }}
@@ -58,8 +55,7 @@ export function SessionsList({ currentSessionId, onNewChat }: SessionsListProps)
               {sessions.map((session) => (
                 <ListboxItem
                   key={session.id}
-                  textValue={session.title || "Untitled Chat"}
-                  href={`/chat/${session.id}`}
+                  textValue={session.title || "新对话"}
                   className={cn(
                     "px-3 py-2 rounded-lg data-[selected=true]:bg-default-100",
                     currentSessionId === session.id ? "bg-default-100 font-medium" : "text-default-500"
@@ -67,10 +63,7 @@ export function SessionsList({ currentSessionId, onNewChat }: SessionsListProps)
                 >
                   <div className="flex flex-col gap-1">
                     <span className="truncate text-sm text-foreground">
-                      {session.title || "Untitled Chat"}
-                    </span>
-                    <span className="text-[10px] text-default-400">
-                      {new Date(session.updated_at).toLocaleDateString()}
+                      {session.title || "新对话"}
                     </span>
                   </div>
                 </ListboxItem>

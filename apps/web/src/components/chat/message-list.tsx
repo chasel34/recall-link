@@ -17,7 +17,7 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
   }, [messages.length, messages[messages.length - 1]?.content])
 
   return (
-    <ScrollShadow className="h-full w-full p-4">
+    <ScrollShadow className="h-full w-full p-4 overflow-y-auto">
       <div className="max-w-3xl mx-auto flex flex-col gap-6 py-4">
         {messages.map((msg, index) => {
           const isUser = msg.role === "user"
