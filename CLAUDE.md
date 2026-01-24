@@ -1,70 +1,75 @@
-# Recall Link - Technical Guide
+# Recall Link
 
-## Tech Stack
+Monorepo for saving webpages, processing them via background jobs, and browsing/asking chat questions.
 
-- **Monorepo:** pnpm + Turborepo
-- **Language:** TypeScript (ES Modules)
-- **Backend:** Hono + SQLite (better-sqlite3) + Zod
-- **Testing:** Vitest
-- **ID Generation:** nanoid (prefixed: `item_xxx`, `job_xxx`)
+See per-area guides:
+- `apps/api/AGENTS.md`
+- `apps/web/AGENTS.md`
+- `docs/AGENTS.md`
 
-## Project Structure
+## Overview
+
+- **Monorepo:** pnpm + Turborepo (`pnpm-workspace.yaml`, `turbo.json`)
+- **Backend:** `apps/api` (Hono + SQLite/better-sqlite3 + Zod) + optional worker loop (`WORKER_ENABLED=1`)
+- **Frontend:** `apps/web` (Vite + React + TanStack Router/Query + HeroUI + Tailwind)
+- **Testing:** Vitest (primarily in `apps/api`)
+
+## Structure
 
 ```
-apps/
-├── api/                 # Backend API
-│   ├── src/
-│   │   ├── db/         # Database client, context, schema.sql
-│   │   ├── features/   # items, chat, events
-│   │   ├── lib/        # utils (ID gen, URL normalization)
-│   │   └── test/       # Integration tests
-│   └── data/           # SQLite files (gitignored)
-└── test-client/        # Test client
-
-docs/
-├── prd.md              # Product requirements
-└── plans/              # Implementation plans
+./
+├── apps/
+│   ├── api/           # API + worker (port 8787)
+│   ├── web/           # Web UI (port 3000)
+│   └── test-client/   # Minimal Vite client (port 5173)
+├── docs/              # PRD + implementation plans
+├── turbo.json
+├── pnpm-workspace.yaml
+└── pnpm-lock.yaml
 ```
 
-## Core Flow
+Note: `pnpm-workspace.yaml` includes `packages/*`, but `packages/` is currently absent.
 
-### Save Webpage (POST /api/items)
-1. Validate URL
-2. Normalize URL (remove tracking params)
-3. Check duplicate via `url_normalized`
-4. Generate IDs: `item_xxx`, `job_xxx`
-5. Create item (status: `pending`) + job (type: `fetch`) in transaction
-6. Return 201 or 409 (duplicate)
+## Where To Look
 
-### Database Tables
-- **items:** Saved URLs, metadata, AI-generated summary/tags
-- **jobs:** Background task queue (fetch, ai_process)
-- **items_fts:** Full-text search index
+| Task | Location | Notes |
+|------|----------|-------|
+| API entry / server start | `apps/api/src/index.ts` | Loads `.env`, starts worker (optional), calls `serve()` |
+| API routing + middleware | `apps/api/src/app.ts`, `apps/api/src/routes/api.ts` | Hono app, `app.route('/api', ...)` |
+| Save item flow | `apps/api/src/features/items/items.route.ts`, `apps/api/src/features/items/items.db.ts` | URL normalization + duplicate check + job enqueue |
+| DB schema + migrations | `apps/api/src/db/schema.sql`, `apps/api/src/db/client.ts` | `applySchema()` runs in phases + backfills FTS |
+| Worker + processors | `apps/api/src/queue/worker.ts`, `apps/api/src/queue/processors/*` | Job polling + `fetch` / `ai_process` |
+| Web app entry | `apps/web/src/main.tsx` | Router + Query + HeroUI providers |
+| Web routes | `apps/web/src/routes/*` | TanStack Router file routes (`createFileRoute`) |
+| Web data hooks | `apps/web/src/hooks/*` | React Query + (some) Zustand |
+| Web API client | `apps/web/src/lib/api-client.ts` | HTTP calls + mirrored response types |
+| Product requirements | `docs/prd.md` | Source-of-truth feature intent |
 
-## Development
+## Conventions (This Repo)
+
+- **pnpm only**: root scripts assume pnpm + turbo (`package.json`)
+- **API uses ESM/NodeNext**: always include `.js` in relative imports in `apps/api/src/*` (e.g. `./app.js`)
+- **SQLite safety**: multi-step writes use `db.transaction(() => { ... })()`
+- **IDs**: prefixed nanoids (e.g. `item_...`, `job_...`, `tag_...`) via `apps/api/src/lib/utils.ts:generateId()`
+- **URL normalization**: run `apps/api/src/lib/utils.ts:normalizeUrl()` before storing/deduping
+- **No CI in repo**: no `.github/workflows/*`; verification is manual (`pnpm test`, `pnpm typecheck`, `pnpm build`)
+
+## Commands
 
 ```bash
-# Install (run locally; user-managed)
 pnpm install
 
-# Dev
-pnpm dev                    # All apps
-cd apps/api && pnpm dev     # API only (port 8787)
+# dev
+pnpm dev
+pnpm dev:web
 
-# Test
-pnpm test                   # All (25 tests)
-cd apps/api && pnpm test    # API only
-
-# Typecheck & Build
+# verify
+pnpm test
 pnpm typecheck
 pnpm build
 ```
 
-## Important Notes
+## Notes / Gotchas
 
-- **ES Modules:** Always use `.js` in imports (`import { x } from './file.js'`)
-- **Package Manager:** Use `pnpm`, not `npm`
-- **Dependencies:** User performs dependency installs locally
-- **Database:** File-based with WAL mode, in-memory for tests
-- **Transactions:** Use `db.transaction(() => { ... })()`
-- **URL Normalization:** Removes utm_*, fbclid, etc., preserves meaningful params
+- `apps/api/data/*` and `apps/*/.env` are gitignored; don't rely on checked-in DB state.
+- `.npmrc` includes `public-hoist-pattern[]=*@heroui/*` (HeroUI ecosystem wants hoisted deps).
