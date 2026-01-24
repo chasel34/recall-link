@@ -3,6 +3,7 @@ import type { Job } from '../../features/jobs/jobs.db.js'
 import { getItemById } from '../../features/items/items.db.js'
 import { generateTagsAndSummary, mergeTagsWithExisting } from '../../services/ai.service.js'
 import { getAllTagNames, setItemTags } from '../../features/tags/tags.db.js'
+import { publishItemUpdated } from '../../features/events/events.bus.js'
 
 export async function processAIJob(db: Database, job: Job): Promise<void> {
   const item = getItemById(db, job.item_id)
@@ -35,6 +36,8 @@ export async function processAIJob(db: Database, job: Job): Promise<void> {
   })()
 
   console.log(`[ai] Completed ${item.url} - Tags: ${mergedTags.join(', ')}`)
+
+  publishItemUpdated(db, item.id, 'ai')
 }
 
 export function shouldRetryAIError(error: any): boolean {

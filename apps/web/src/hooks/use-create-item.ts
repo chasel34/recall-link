@@ -9,6 +9,7 @@ export function useCreateItem() {
     mutationFn: (url: string) => apiClient.createItem(url),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['items'] })
+      queryClient.invalidateQueries({ queryKey: ['tags'] })
       addToast({
         title: '保存成功',
         description: '正在处理网页内容...',

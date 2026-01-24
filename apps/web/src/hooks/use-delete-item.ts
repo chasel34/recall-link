@@ -11,6 +11,7 @@ export function useDeleteItem() {
     mutationFn: (id: string) => apiClient.deleteItem(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['items'] })
+      queryClient.invalidateQueries({ queryKey: ['tags'] })
       addToast({
         title: '删除成功',
         description: '网页已删除',

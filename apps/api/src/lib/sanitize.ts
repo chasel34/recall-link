@@ -72,6 +72,8 @@ const ALLOWED_ATTRS: AllowedAttrMap = {
   a: new Set(['href', 'title']),
 }
 
+const sharedDom = new JSDOM(`<!doctype html><body></body>`)
+
 function isSafeUrl(url: URL): boolean {
   return url.protocol === 'http:' || url.protocol === 'https:'
 }
@@ -146,8 +148,7 @@ function sanitizeElement(el: Element, baseUrl: string): void {
  * - Normalizes relative links to absolute https? URLs
  */
 export function sanitizeReadabilityHtml(html: string, baseUrl: string): string {
-  const dom = new JSDOM(`<!doctype html><body></body>`, { url: baseUrl })
-  return sanitizeReadabilityHtmlInWindow(html, baseUrl, dom.window)
+  return sanitizeReadabilityHtmlInWindow(html, baseUrl, sharedDom.window)
 }
 
 /**

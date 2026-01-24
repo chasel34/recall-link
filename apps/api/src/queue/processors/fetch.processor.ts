@@ -6,6 +6,7 @@ import { updateItemContent } from '../../features/jobs/jobs.db.js'
 import { getItemById } from '../../features/items/items.db.js'
 import { generateId } from '../../lib/utils.js'
 import { sanitizeReadabilityHtmlInWindow } from '../../lib/sanitize.js'
+import { publishItemUpdated } from '../../features/events/events.bus.js'
 
 /**
  * Process fetch job - download webpage and extract content
@@ -65,4 +66,6 @@ export async function processFetchJob(db: Database, job: Job): Promise<void> {
   ).run(aiJobId, item.id, now, now, now)
 
   console.log(`[fetch] Created ai_process job ${aiJobId} for item ${item.id}`)
+
+  publishItemUpdated(db, item.id, 'fetch')
 }

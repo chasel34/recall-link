@@ -6,6 +6,7 @@ import { acquireJob, completeJob, failJob, retryJob, failItem } from '../feature
 import { processFetchJob } from './processors/fetch.processor.js'
 import { processAIJob, shouldRetryAIError } from './processors/ai.processor.js'
 import { logger } from '../lib/logger.js'
+import { publishItemUpdated } from '../features/events/events.bus.js'
 
 const POLL_INTERVAL_MS = 5000
 const MAX_ATTEMPTS = 3
@@ -141,6 +142,7 @@ async function handleJobFailure(db: Database, job: Job, error: Error): Promise<v
     failJob(db, job.id, error.message)
     if (job.type === 'fetch' || job.type === 'ai_process') {
       failItem(db, job.item_id, error.message)
+      publishItemUpdated(db, job.item_id, job.type === 'ai_process' ? 'ai' : 'fetch')
     }
   }
 }

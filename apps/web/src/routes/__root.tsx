@@ -2,7 +2,9 @@ import React from 'react'
 import { createRootRoute, Outlet } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/router-devtools'
 import { AppLayout } from '@/components/layout/app-layout'
-import { ToastProvider } from '@heroui/react'
+import { addToast, ToastProvider } from '@heroui/react'
+import { queryClient } from '@/lib/query-client'
+import type { Item, ListItemsResponse } from '@/lib/api-client'
 
 function AgentationDev() {
   const [Component, setComponent] = React.useState<React.ComponentType | null>(
@@ -28,7 +30,83 @@ function AgentationDev() {
 }
 
 export const Route = createRootRoute({
-  component: () => (
+  component: Root,
+})
+
+type ItemUpdatedEnvelope = {
+  v: 1
+  ts: string
+  type: 'item.updated'
+  data: {
+    item: Item
+    source: 'fetch' | 'ai' | 'system'
+  }
+}
+
+function Root() {
+  React.useEffect(() => {
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8787'
+    const es = new EventSource(`${apiBase}/api/items/events`)
+
+    const onItemUpdated = (event: MessageEvent) => {
+      let payload: ItemUpdatedEnvelope
+      try {
+        payload = JSON.parse(event.data) as ItemUpdatedEnvelope
+      } catch {
+        return
+      }
+
+      const item = payload.data?.item
+      if (!item?.id) return
+
+      const prev = queryClient.getQueryData<Item>(['items', item.id])
+
+      queryClient.setQueryData<Item>(['items', item.id], (old) => {
+        if (!old) return item
+        return { ...old, ...item }
+      })
+
+      queryClient.setQueriesData(
+        { queryKey: ['items'] },
+        (oldData: ListItemsResponse | undefined) => {
+          if (!oldData) return oldData
+          const idx = oldData.items.findIndex((it) => it.id === item.id)
+          if (idx < 0) return oldData
+
+          const nextItems = oldData.items.slice()
+          nextItems[idx] = { ...nextItems[idx], ...item }
+
+          return {
+            ...oldData,
+            items: nextItems,
+          }
+        }
+      )
+
+      if (payload.data.source === 'ai') {
+        queryClient.invalidateQueries({ queryKey: ['tags'] })
+
+        const prevHadSummary = !!prev?.summary
+        const nextHasSummary = !!item.summary
+        if (!prevHadSummary && nextHasSummary) {
+          addToast({
+            title: 'AI 处理完成',
+            description: '摘要和标签已生成',
+            color: 'success',
+          })
+        }
+      }
+    }
+
+    es.addEventListener('item.updated', onItemUpdated)
+
+    return () => {
+      es.removeEventListener('item.updated', onItemUpdated)
+      es.close()
+    }
+  }, [])
+
+  return (
     <>
       <AppLayout>
         <Outlet />
@@ -37,5 +115,5 @@ export const Route = createRootRoute({
       <ToastProvider placement="bottom-right" maxVisibleToasts={3} />
       <TanStackRouterDevtools />
     </>
-  ),
-})
+  )
+}

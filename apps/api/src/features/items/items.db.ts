@@ -292,8 +292,27 @@ export function updateItem(db: Database, id: string, updates: UpdateItemData): {
  */
 export function deleteItem(db: Database, id: string): { deletedItem: number; deletedJobs: number } {
   return db.transaction(() => {
+    const affectedTagIds = db
+      .prepare('SELECT tag_id FROM item_tags WHERE item_id = ?')
+      .all(id) as { tag_id: string }[]
+
+    // Defensive cleanup for databases created before foreign_keys=ON was enforced.
+    db.prepare('DELETE FROM item_tags WHERE item_id = ?').run(id)
+
     const jobResult = db.prepare('DELETE FROM jobs WHERE item_id = ?').run(id)
     const itemResult = db.prepare('DELETE FROM items WHERE id = ?').run(id)
+
+    const updateStmt = db.prepare(`
+      UPDATE tags
+      SET item_count = (
+        SELECT COUNT(*) FROM item_tags WHERE tag_id = ?
+      )
+      WHERE id = ?
+    `)
+
+    for (const row of affectedTagIds) {
+      updateStmt.run(row.tag_id, row.tag_id)
+    }
 
     return {
       deletedItem: itemResult.changes,
