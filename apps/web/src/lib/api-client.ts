@@ -7,6 +7,7 @@ export interface Item {
   title: string | null
   summary: string | null
   clean_text: string | null
+  clean_html?: string | null
   status: 'pending' | 'completed' | 'failed'
   tags: string[]
   created_at: string

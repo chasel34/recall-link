@@ -2,8 +2,8 @@ import { Skeleton } from '@heroui/react'
 
 export function ItemDetailSkeleton() {
   return (
-    <div className="max-w-4xl mx-auto px-6 py-8">
-      <div className="flex items-center justify-between mb-8 pb-4 border-b border-stone-200">
+    <div className="w-full mx-auto px-6 py-8">
+      <div className="flex items-center justify-between mb-8 pb-4 border-b border-stone-200 max-w-6xl 2xl:max-w-7xl mx-auto xl:w-full">
         <Skeleton className="rounded-lg w-20 h-8" />
         <div className="flex gap-2">
           <Skeleton className="rounded-lg w-24 h-8" />
@@ -17,8 +17,8 @@ export function ItemDetailSkeleton() {
         <Skeleton className="rounded-full w-64 h-6" />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-10">
-        <div className="space-y-8">
+      <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] xl:grid-cols-[minmax(0,1fr)_minmax(0,44rem)_18rem_minmax(0,1fr)] gap-10">
+        <div className="space-y-8 min-w-0 xl:col-start-2">
           <Skeleton className="rounded-xl w-full h-32" />
 
           <div className="space-y-4">
@@ -36,7 +36,7 @@ export function ItemDetailSkeleton() {
           </div>
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-8 xl:col-start-3">
            <div className="space-y-3">
              <Skeleton className="rounded w-12 h-4" />
              <div className="flex gap-2 flex-wrap">

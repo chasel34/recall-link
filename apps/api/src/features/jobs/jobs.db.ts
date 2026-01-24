@@ -100,7 +100,7 @@ export function retryJob(
 export function updateItemContent(
   db: Database,
   itemId: string,
-  data: { title?: string; clean_text?: string; status: string }
+  data: { title?: string; clean_text?: string; clean_html?: string; status: string }
 ): void {
   const now = new Date().toISOString()
 
@@ -112,9 +112,14 @@ export function updateItemContent(
     params.push(data.title)
   }
 
-  if (data.clean_text) {
+  if (data.clean_text !== undefined) {
     sets.push('clean_text = ?')
     params.push(data.clean_text)
+  }
+
+  if (data.clean_html !== undefined) {
+    sets.push('clean_html = ?')
+    params.push(data.clean_html)
   }
 
   sets.push('status = ?', 'processed_at = ?', 'updated_at = ?')

@@ -29,8 +29,8 @@ export function ItemDetail({ item }: ItemDetailProps) {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-8">
-      <div className="flex items-center justify-between mb-8 pb-4 border-b border-stone-200">
+    <div className="w-full mx-auto px-6 py-8">
+      <div className="flex items-center justify-between mb-8 pb-4 border-b border-stone-200 max-w-6xl 2xl:max-w-7xl mx-auto xl:w-full">
         <Button
           variant="light"
           size="sm"
@@ -93,23 +93,23 @@ export function ItemDetail({ item }: ItemDetailProps) {
         <h1 className="text-4xl font-serif font-bold mb-4 text-stone-900 leading-tight">
           {item.title || '无标题'}
         </h1>
-        <div className="flex flex-col items-center gap-2 text-sm text-stone-500 font-medium">
+        <div className="flex flex-col items-center gap-1 text-xs text-stone-500 font-medium">
           <a
             href={item.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-stone-600 hover:text-stone-900 hover:underline flex items-center gap-1 transition-colors bg-stone-50 px-3 py-1 rounded-full border border-stone-200"
+            className="text-stone-600 hover:text-stone-900 hover:underline flex items-center gap-1 transition-colors bg-stone-50 px-2 py-0.5 rounded-full border border-stone-200"
           >
             🔗 {item.url}
           </a>
-          <p className="tracking-wide uppercase text-xs mt-2">
+          <p className="tracking-wide uppercase text-xs mt-1">
             保存于 {format(new Date(item.created_at), 'PPP', { locale: zhCN })}
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-10">
-        <div className="space-y-8">
+      <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] xl:grid-cols-[minmax(0,1fr)_minmax(0,44rem)_18rem_minmax(0,1fr)] gap-10">
+        <div className="space-y-8 min-w-0 xl:col-start-2">
           {item.summary && (
             <div className="bg-[#FDFBF7] p-6 rounded-xl border border-stone-100 shadow-sm relative overflow-hidden">
               <div className="absolute top-0 right-0 p-4 opacity-5">
@@ -127,13 +127,19 @@ export function ItemDetail({ item }: ItemDetailProps) {
             </div>
           )}
 
-          {item.clean_text && (
-            <div className="prose prose-stone prose-lg max-w-none">
+          {(item.clean_html || item.clean_text) && (
+            <div className="prose prose-stone prose-lg max-w-none break-words">
               <h2 className="text-xl font-bold mb-6 pb-2 border-b border-stone-200">内容预览</h2>
-              <div
-                dangerouslySetInnerHTML={{ __html: item.clean_text }}
-                className="opacity-90"
-              />
+              {item.clean_html ? (
+                <div
+                  dangerouslySetInnerHTML={{ __html: item.clean_html }}
+                  className="[&_pre]:overflow-x-auto [&_table]:block [&_table]:overflow-x-auto [&_table]:w-full"
+                />
+              ) : (
+                <div className="text-stone-800 leading-relaxed whitespace-pre-wrap">
+                  {item.clean_text}
+                </div>
+              )}
             </div>
           )}
 
@@ -147,7 +153,7 @@ export function ItemDetail({ item }: ItemDetailProps) {
           )}
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-8 xl:col-start-3">
            {item.tags.length > 0 && (
             <div>
               <h2 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-4">标签</h2>
@@ -155,6 +161,7 @@ export function ItemDetail({ item }: ItemDetailProps) {
                 {item.tags.map((tag) => (
                   <Chip 
                     key={tag} 
+                    size="sm"
                     variant="flat" 
                     className="bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors"
                   >
@@ -165,16 +172,16 @@ export function ItemDetail({ item }: ItemDetailProps) {
             </div>
           )}
           
-          <div className="bg-stone-50 p-5 rounded-lg border border-stone-200">
+          <div className="bg-stone-50 p-4 rounded-lg border border-stone-200">
              <h2 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-3">信息</h2>
-             <dl className="space-y-3 text-sm">
+             <dl className="space-y-3 text-xs">
                <div>
                  <dt className="text-stone-500 mb-1">域名</dt>
                  <dd className="font-medium text-stone-800">{item.domain}</dd>
                </div>
                <div>
                  <dt className="text-stone-500 mb-1">ID</dt>
-                 <dd className="font-mono text-xs text-stone-400 truncate">{item.id}</dd>
+                 <dd className="font-mono text-stone-400 truncate">{item.id}</dd>
                </div>
              </dl>
           </div>

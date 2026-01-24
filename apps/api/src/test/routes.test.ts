@@ -223,6 +223,7 @@ describe('GET /api/items/:id', () => {
     const data = await res.json()
     expect(data.id).toBe(created.id)
     expect(data.url).toBe('https://example.com')
+    expect(data).toHaveProperty('clean_html')
   })
 
   it('should return 404 for non-existent item', async () => {

@@ -15,7 +15,7 @@ function ItemDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="p-6">
+      <div className="w-full">
         <ItemDetailSkeleton />
       </div>
     )
@@ -38,7 +38,7 @@ function ItemDetailPage() {
   }
 
   return (
-    <div className="p-6">
+    <div className="w-full">
       <ItemDetail item={item} />
     </div>
   )

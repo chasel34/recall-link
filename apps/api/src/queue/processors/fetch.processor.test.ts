@@ -39,6 +39,9 @@ describe('processFetchJob', () => {
             <h1>Test Article</h1>
             <p>This is the main content of the article.</p>
             <p>It has multiple paragraphs.</p>
+            <p><a href="/rel">Relative link</a></p>
+            <script>alert('x')</script>
+            <img src="/x.png" />
           </article>
         </body>
       </html>
@@ -72,6 +75,12 @@ describe('processFetchJob', () => {
     const item = db.prepare('SELECT * FROM items WHERE id = ?').get('item_test') as any
     expect(item.title).toBe('Test Article')
     expect(item.clean_text).toContain('main content')
+    expect(item.clean_html).toContain('<a')
+    expect(item.clean_html).toContain('href="https://example.com/rel"')
+    expect(item.clean_html).toContain('rel="noopener noreferrer"')
+    expect(item.clean_html).toContain('target="_blank"')
+    expect(item.clean_html).not.toContain('<script')
+    expect(item.clean_html).not.toContain('<img')
     expect(item.status).toBe('completed')
     expect(item.processed_at).toBeTruthy()
   })

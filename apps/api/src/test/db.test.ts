@@ -39,4 +39,41 @@ describe('db schema', () => {
     closeDb()
     process.chdir(originalCwd)
   })
+
+  it('migrates items table to add clean_html column when missing', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'recall-db-migrate-'))
+    const schemaPath = path.join(dir, 'schema.sql')
+
+    // Simulate an older schema without the clean_html column.
+    fs.writeFileSync(
+      schemaPath,
+      [
+        'CREATE TABLE IF NOT EXISTS items (',
+        '  id TEXT PRIMARY KEY,',
+        '  url TEXT NOT NULL,',
+        '  url_normalized TEXT NOT NULL UNIQUE,',
+        '  title TEXT,',
+        '  domain TEXT,',
+        '  status TEXT NOT NULL,',
+        '  error_code TEXT,',
+        '  error_message TEXT,',
+        '  clean_text TEXT,',
+        '  summary TEXT,',
+        '  summary_source TEXT,',
+        '  note TEXT,',
+        '  created_at TEXT NOT NULL,',
+        '  updated_at TEXT NOT NULL,',
+        '  processed_at TEXT',
+        ');',
+      ].join('\n'),
+      'utf8'
+    )
+
+    const db = openDb(path.join(dir, 'test.sqlite'))
+    applySchema(db, schemaPath)
+
+    const columns = db.prepare("PRAGMA table_info('items')").all() as Array<{ name: string }>
+    expect(columns.some((c) => c.name === 'clean_html')).toBe(true)
+    db.close()
+  })
 })

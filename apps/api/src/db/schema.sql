@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS items (
   error_code TEXT,
   error_message TEXT,
   clean_text TEXT,
+  clean_html TEXT,
   summary TEXT,
   summary_source TEXT,
   note TEXT,

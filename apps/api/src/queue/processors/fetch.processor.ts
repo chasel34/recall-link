@@ -5,6 +5,7 @@ import type { Job } from '../../features/jobs/jobs.db.js'
 import { updateItemContent } from '../../features/jobs/jobs.db.js'
 import { getItemById } from '../../features/items/items.db.js'
 import { generateId } from '../../lib/utils.js'
+import { sanitizeReadabilityHtmlInWindow } from '../../lib/sanitize.js'
 
 /**
  * Process fetch job - download webpage and extract content
@@ -40,9 +41,14 @@ export async function processFetchJob(db: Database, job: Job): Promise<void> {
     throw new Error('Failed to extract article content')
   }
 
+  const cleanHtml = article.content
+    ? sanitizeReadabilityHtmlInWindow(article.content, item.url, dom.window)
+    : undefined
+
   updateItemContent(db, item.id, {
     title: article.title || (item.title ?? undefined),
     clean_text: article.textContent ?? undefined,
+    clean_html: cleanHtml,
     status: 'completed',
   })
 

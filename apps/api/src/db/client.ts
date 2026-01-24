@@ -20,6 +20,7 @@ export function applySchema(db: Db, schemaFilePath: string) {
   const sql = fs.readFileSync(schemaFilePath, 'utf8')
   db.exec(sql)
   migrateJobsItemIdUnique(db)
+  migrateItemsCleanHtmlColumn(db)
 }
 
 export function defaultSchemaPath() {
@@ -83,4 +84,13 @@ function migrateJobsItemIdUnique(db: Db): void {
     db.exec(`CREATE INDEX IF NOT EXISTS idx_jobs_item_id ON jobs(item_id)`)
     db.exec(`CREATE INDEX IF NOT EXISTS idx_jobs_state_run_after ON jobs(state, run_after)`)
   })()
+}
+
+function migrateItemsCleanHtmlColumn(db: Db): void {
+  const columns = db.prepare(`PRAGMA table_info('items')`).all() as Array<{ name: string }>
+  const hasCleanHtml = columns.some((c) => c.name === 'clean_html')
+  if (hasCleanHtml) return
+
+  console.log('[db] Migrating items table: adding clean_html column')
+  db.exec(`ALTER TABLE items ADD COLUMN clean_html TEXT`)
 }

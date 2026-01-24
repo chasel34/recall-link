@@ -11,6 +11,7 @@ export type Item = {
   error_code: string | null
   error_message: string | null
   clean_text: string | null
+  clean_html: string | null
   summary: string | null
   summary_source: string | null
   note: string | null
