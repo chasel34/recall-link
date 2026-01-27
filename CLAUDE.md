@@ -21,7 +21,6 @@ See per-area guides:
 ├── apps/
 │   ├── api/           # API + worker (port 8787)
 │   ├── web/           # Web UI (port 3000)
-│   └── test-client/   # Minimal Vite client (port 5173)
 ├── docs/              # PRD + implementation plans
 ├── turbo.json
 ├── pnpm-workspace.yaml
