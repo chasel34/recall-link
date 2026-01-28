@@ -9,20 +9,20 @@ interface SourceCardProps {
 
 export function SourceCard({ source }: SourceCardProps) {
   return (
-    <Card className="w-full bg-content2 dark:bg-content1 border-none shadow-sm hover:bg-content3 transition-colors">
+    <Card className="w-full bg-card border border-border shadow-sm hover:shadow-md transition-all">
       <CardBody className="p-3 gap-2">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="p-1 rounded-md bg-default-100 text-default-500 shrink-0">
+            <div className="p-1 rounded-md bg-muted text-muted-foreground shrink-0">
               <FileText className="w-3 h-3" />
             </div>
-            <h4 className="text-sm font-medium truncate text-foreground">
+            <h4 className="text-sm font-medium truncate text-foreground font-sans">
               {source.title || "Untitled Source"}
             </h4>
           </div>
         </div>
         {source.snippet && (
-          <p className="text-xs text-default-500 line-clamp-3 leading-relaxed">
+          <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
             {source.snippet}
           </p>
         )}
@@ -44,7 +44,7 @@ export function SourceCard({ source }: SourceCardProps) {
           <Button
             size="sm"
             variant="light"
-            className="text-xs h-7 min-w-0 px-2 text-default-500"
+            className="text-xs h-7 min-w-0 px-2 text-muted-foreground"
             onPress={() => window.open(source.url, '_blank', 'noopener,noreferrer')}
             endContent={<ExternalLink className="w-3 h-3" />}
           >

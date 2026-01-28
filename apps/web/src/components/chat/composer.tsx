@@ -28,8 +28,8 @@ export function Composer({ onSend, onStop, isStreaming, isLoading }: ComposerPro
   }
 
   return (
-    <div className="p-4 border-t border-default-100 bg-background/50 backdrop-blur-md">
-      <div className="max-w-3xl mx-auto relative flex gap-2 items-end bg-default-50 p-2 rounded-2xl border border-default-200 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
+    <div className="p-4 border-t border-border bg-background/50 backdrop-blur-md">
+      <div className="max-w-3xl mx-auto relative flex gap-2 items-end bg-card p-2 rounded-2xl border border-border focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all shadow-sm">
         <Textarea
           ref={textareaRef}
           value={value}
@@ -40,7 +40,7 @@ export function Composer({ onSend, onStop, isStreaming, isLoading }: ComposerPro
           maxRows={8}
           variant="flat"
           classNames={{
-            input: "text-base",
+            input: "text-base text-foreground placeholder:text-muted-foreground",
             inputWrapper: "bg-transparent shadow-none hover:bg-transparent focus-within:bg-transparent p-0",
           }}
           className="flex-1"
@@ -73,7 +73,7 @@ export function Composer({ onSend, onStop, isStreaming, isLoading }: ComposerPro
         </div>
       </div>
       <div className="max-w-3xl mx-auto mt-2 text-center">
-        <p className="text-[10px] text-default-400">
+        <p className="text-[10px] text-muted-foreground">
           AI can make mistakes. Check important info.
         </p>
       </div>

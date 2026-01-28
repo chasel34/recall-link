@@ -17,7 +17,7 @@ export function SessionsList({ currentSessionId, onNewChat }: SessionsListProps)
 
   return (
     <div className="flex flex-col h-full w-full min-h-0">
-      <div className="p-4 border-b border-default-100">
+      <div className="p-4 border-b border-border">
         <Button 
           className="w-full justify-start font-medium" 
           color="primary" 
@@ -36,7 +36,7 @@ export function SessionsList({ currentSessionId, onNewChat }: SessionsListProps)
         {isLoading ? (
           <div className="p-4 space-y-2">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-10 rounded-lg bg-default-100 animate-pulse" />
+              <div key={i} className="h-10 rounded-lg bg-muted animate-pulse" />
             ))}
           </div>
         ) : (
@@ -48,7 +48,7 @@ export function SessionsList({ currentSessionId, onNewChat }: SessionsListProps)
               selectionMode="single"
               selectedKeys={currentSessionId ? [currentSessionId] : []}
               onAction={(key) => navigate({ to: `/chat/${key}` })}
-              classNames={{
+                classNames={{
                 list: "gap-1"
               }}
             >
@@ -57,12 +57,12 @@ export function SessionsList({ currentSessionId, onNewChat }: SessionsListProps)
                   key={session.id}
                   textValue={session.title || "新对话"}
                   className={cn(
-                    "px-3 py-2 rounded-lg data-[selected=true]:bg-default-100",
-                    currentSessionId === session.id ? "bg-default-100 font-medium" : "text-default-500"
+                    "px-3 py-2 rounded-lg data-[selected=true]:bg-muted data-[selected=true]:text-foreground",
+                    currentSessionId === session.id ? "bg-muted font-medium text-foreground" : "text-muted-foreground"
                   )}
                 >
                   <div className="flex flex-col gap-1">
-                    <span className="truncate text-sm text-foreground">
+                    <span className="truncate text-sm">
                       {session.title || "新对话"}
                     </span>
                   </div>

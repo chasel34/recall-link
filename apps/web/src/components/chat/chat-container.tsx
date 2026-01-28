@@ -1,12 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
+import { Sparkles } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { apiClient, ChatMessage } from "../../lib/api-client"
 import { useChatMessages } from "../../hooks/use-chat-messages"
-import { ChatLayout } from "./chat-layout"
 import { Composer } from "./composer"
 import { MessageList } from "./message-list"
-import { SessionsList } from "./sessions-list"
 
 interface ChatContainerProps {
   sessionId?: string
@@ -57,6 +56,7 @@ export function ChatContainer({ sessionId, initialMessage }: ChatContainerProps)
   }
 
   const handleSend = async (content: string) => {
+
     let currentSessionId = sessionId
 
     if (!currentSessionId) {
@@ -153,42 +153,31 @@ export function ChatContainer({ sessionId, initialMessage }: ChatContainerProps)
     }
   }
 
-  const handleNewChat = () => {
-    handleStop()
-  }
-
   return (
-    <ChatLayout
-      sidebar={
-        <SessionsList 
-          currentSessionId={sessionId} 
-          onNewChat={handleNewChat}
-        />
-      }
-    >
-      <div className="flex flex-col h-full w-full min-h-0">
-        <div className="flex-1 min-h-0 overflow-hidden relative">
-          {messages.length === 0 && !isLoadingHistory ? (
-             <div className="h-full flex flex-col items-center justify-center p-8 text-center space-y-4">
-                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-                  <div className="i-lucide-sparkles w-8 h-8 text-primary" />
-                </div>
-               <h2 className="text-2xl font-bold">Recall Link AI</h2>
-               <p className="text-default-500 max-w-md">
-                 Ask questions about your saved items. I'll search through them and provide answers with sources.
-               </p>
-             </div>
-          ) : (
-            <MessageList messages={messages} isStreaming={isStreaming} />
-          )}
-        </div>
-        <Composer 
-          onSend={handleSend} 
-          onStop={handleStop}
-          isStreaming={isStreaming}
-          isLoading={!sessionId && createSessionMutation.isPending}
-        />
+    <div className="flex flex-col h-full w-full min-h-0">
+      <div className="flex-1 min-h-0 overflow-hidden relative">
+        {messages.length === 0 && !isLoadingHistory ? (
+            <div className="h-full flex flex-col items-center justify-center p-8 text-center space-y-6">
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center shadow-sm">
+                <Sparkles className="w-8 h-8 text-primary" />
+              </div>
+              <div className="space-y-2 max-w-md">
+                <h2 className="font-serif text-2xl font-semibold text-foreground">Recall Link AI</h2>
+                <p className="text-muted-foreground">
+                  Ask questions about your saved items. I'll search through them and provide answers with sources.
+                </p>
+              </div>
+            </div>
+        ) : (
+          <MessageList messages={messages} isStreaming={isStreaming} />
+        )}
       </div>
-    </ChatLayout>
+      <Composer 
+        onSend={handleSend} 
+        onStop={handleStop}
+        isStreaming={isStreaming}
+        isLoading={!sessionId && createSessionMutation.isPending}
+      />
+    </div>
   )
 }

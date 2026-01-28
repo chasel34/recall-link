@@ -10,7 +10,7 @@ export function SourcesPanel({ sources }: SourcesPanelProps) {
   if (!sources || sources.length === 0) {
     return (
       <div className="h-full flex items-center justify-center p-8 text-center">
-        <div className="text-default-400">
+        <div className="text-muted-foreground">
           <p className="text-sm">Sources will appear here</p>
         </div>
       </div>
@@ -19,8 +19,8 @@ export function SourcesPanel({ sources }: SourcesPanelProps) {
 
   return (
     <div className="h-full flex flex-col min-h-0">
-      <div className="p-4 border-b border-default-100 dark:border-default-50">
-        <h3 className="font-semibold text-sm text-default-600 uppercase tracking-wider">
+      <div className="p-4 border-b border-border">
+        <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider font-sans">
           Sources ({sources.length})
         </h3>
       </div>

@@ -49,27 +49,27 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
             : undefined
 
           return (
-            <div
-              key={msg.id}
-              className={cn(
-                "flex w-full",
-                isUser ? "justify-end" : "justify-start"
-              )}
-            >
               <div
+                key={msg.id}
                 className={cn(
-                  "relative max-w-[85%] rounded-2xl px-5 py-3.5 text-sm shadow-sm",
-                  isUser
-                    ? "bg-primary text-primary-foreground rounded-br-sm"
-                    : "bg-content2 text-foreground rounded-bl-sm"
+                  "flex w-full",
+                  isUser ? "justify-end" : "justify-start"
                 )}
               >
-                {isUser ? (
-                  <div className="whitespace-pre-wrap">{msg.content}</div>
-                ) : (
-                  <div className="prose dark:prose-invert max-w-none prose-sm prose-p:my-1 prose-pre:my-1 prose-headings:my-2">
-                    <Streamdown 
-                      isAnimating={isLast && isStreaming}
+                <div
+                  className={cn(
+                    "relative max-w-[85%] rounded-2xl px-5 py-3.5 text-sm shadow-sm",
+                    isUser
+                      ? "bg-primary text-primary-foreground rounded-br-sm"
+                      : "bg-card text-foreground border border-border rounded-bl-sm"
+                  )}
+                >
+                  {isUser ? (
+                    <div className="whitespace-pre-wrap">{msg.content}</div>
+                  ) : (
+                    <div className="prose prose-neutral dark:prose-invert max-w-none prose-sm prose-p:my-1 prose-pre:my-1 prose-headings:my-2 font-sans">
+                      <Streamdown 
+                        isAnimating={isLast && isStreaming}
                       components={components}
                       rehypePlugins={rehypePlugins}
                       remarkRehypeOptions={remarkRehypeOptions}
