@@ -40,7 +40,7 @@ export function ItemsSearchBar({ onCreateClick }: ItemsSearchBarProps) {
   }, [query, mode, tags])
 
   return (
-    <div className="border-b p-4">
+    <div className="w-full">
       <div className="flex items-center gap-3">
         <div className="flex-1">
           <Input

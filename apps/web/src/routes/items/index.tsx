@@ -2,7 +2,6 @@ import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 import { useState } from 'react'
 import { useItems } from '@/hooks/use-items'
-import { ItemsTagSidebar } from '@/components/items/items-tag-sidebar'
 import { ItemsGrid } from '@/components/items/items-grid'
 import { ItemsSearchBar } from '@/components/items/items-search-bar'
 import { CreateItemDialog } from '@/components/items/create-item-dialog'
@@ -27,13 +26,12 @@ function ItemsPage() {
 
   return (
     <>
-      <div className="flex flex-col h-[calc(100vh-57px)]">
-        <ItemsSearchBar onCreateClick={() => setShowCreateDialog(true)} />
-        <div className="flex flex-1 overflow-hidden">
-          <ItemsTagSidebar />
-          <div className="flex-1 overflow-auto p-6">
-            <ItemsGrid items={data?.items || []} isLoading={isLoading} />
-          </div>
+      <div className="flex flex-col min-h-full">
+        <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md pb-4 pt-4 px-6 border-b border-default-100">
+           <ItemsSearchBar onCreateClick={() => setShowCreateDialog(true)} />
+        </div>
+        <div className="p-6">
+          <ItemsGrid items={data?.items || []} isLoading={isLoading} />
         </div>
       </div>
 

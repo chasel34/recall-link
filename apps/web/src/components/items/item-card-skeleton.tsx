@@ -2,7 +2,7 @@ import { Card, CardHeader, CardBody, CardFooter, Skeleton } from '@heroui/react'
 
 export function ItemCardSkeleton() {
   return (
-    <Card className="h-full border-none shadow-sm bg-[#FDFBF7]">
+    <Card className="h-full border-none shadow-sm bg-card">
       <CardHeader className="h-40 p-0 overflow-hidden">
         <Skeleton className="h-full w-full" />
       </CardHeader>
