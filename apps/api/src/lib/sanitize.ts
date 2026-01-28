@@ -148,7 +148,7 @@ function sanitizeElement(el: Element, baseUrl: string): void {
  * - Normalizes relative links to absolute https? URLs
  */
 export function sanitizeReadabilityHtml(html: string, baseUrl: string): string {
-  return sanitizeReadabilityHtmlInWindow(html, baseUrl, sharedDom.window)
+  return sanitizeReadabilityHtmlInWindow(html, baseUrl, sharedDom.window as unknown as Window)
 }
 
 /**
@@ -161,7 +161,7 @@ export function sanitizeReadabilityHtmlInWindow(html: string, baseUrl: string, w
   const container = document.createElement('div')
   container.innerHTML = html
 
-  const walker = document.createTreeWalker(container, window.NodeFilter.SHOW_ELEMENT)
+  const walker = document.createTreeWalker(container, (window as any).NodeFilter.SHOW_ELEMENT)
   const elements: Element[] = []
 
   let current = walker.nextNode() as Element | null

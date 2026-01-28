@@ -24,6 +24,7 @@ export async function streamChatAnswer(input: {
       return [
         `[${n}] ${title}`,
         `URL: ${s.url}`,
+        `ItemID: ${s.item_id}`,
         s.snippet ? `Snippet: ${s.snippet}` : '',
       ]
         .filter(Boolean)
@@ -35,9 +36,15 @@ export async function streamChatAnswer(input: {
     `你是用户个人知识库（书签/网页内容）的助手。\n` +
     `回答要求：\n` +
     `- 默认只使用提供的 Sources 来回答，不要编造来源。\n` +
-    `- 如果 Sources 为空或不足以回答，请明确说明“你的知识库中暂时没有相关内容”。\n` +
-    `- 输出使用 Markdown。\n` +
-    `- 当引用某条来源时，在句末标注对应编号，例如 [1]。\n`
+    `- 如果 Sources 为空或不足以回答，请明确说明“你的知识库中暂时没有相关内容”，且不要输出 <sources> 标签块。\n` +
+    `- 输出格式为 Markdown。\n` +
+    `- 当引用某条来源时，在句末标注对应编号，例如 [1]。\n` +
+    `- 只要使用了提供的 Sources，就必须在回答的正文结束后，添加一个 <sources> 标签块。格式如下：\n` +
+    `\n<sources>\n` +
+    `<source title="..." url="..." item_id="..." />\n` +
+    `</sources>\n` +
+    `- <source> 标签中的 title, url, item_id 必须从 Sources 中提取，严禁伪造。\n` +
+    `- <source> 列表的顺序必须与提供的 Sources 列表顺序一致。\n`
 
   const userPrompt =
     `Question:\n${input.question}\n\n` +

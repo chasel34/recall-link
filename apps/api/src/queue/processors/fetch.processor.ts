@@ -44,7 +44,7 @@ export async function processFetchJob(db: Database, job: Job): Promise<void> {
   }
 
   const cleanHtml = article.content
-    ? sanitizeReadabilityHtmlInWindow(article.content, item.url, dom.window)
+    ? sanitizeReadabilityHtmlInWindow(article.content, item.url, dom.window as unknown as Window)
     : undefined
 
   updateItemContent(db, item.id, {

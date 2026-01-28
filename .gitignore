@@ -3,6 +3,13 @@ node_modules/
 dist/
 .turbo/
 
+# OpenCode planning/state
+.sisyphus/
+
+# Playwright
+apps/web/test-results/
+apps/web/playwright-report/
+
 
 .gemini/
 gha-creds-*.json

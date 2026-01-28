@@ -1,13 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { useEffect, useRef, useState } from "react"
-import { apiClient, ChatMessage, ChatSource } from "../../lib/api-client"
+import { apiClient, ChatMessage } from "../../lib/api-client"
 import { useChatMessages } from "../../hooks/use-chat-messages"
 import { ChatLayout } from "./chat-layout"
 import { Composer } from "./composer"
 import { MessageList } from "./message-list"
 import { SessionsList } from "./sessions-list"
-import { SourcesPanel } from "./sources-panel"
 
 interface ChatContainerProps {
   sessionId?: string
@@ -18,7 +17,6 @@ export function ChatContainer({ sessionId, initialMessage }: ChatContainerProps)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [sources, setSources] = useState<ChatSource[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const abortControllerRef = useRef<AbortController | null>(null)
   const streamingUserIdRef = useRef<string | null>(null)
@@ -32,15 +30,6 @@ export function ChatContainer({ sessionId, initialMessage }: ChatContainerProps)
   useEffect(() => {
     if (historyData?.messages) {
       setMessages(historyData.messages)
-      const lastMsg = historyData.messages[historyData.messages.length - 1]
-      if (lastMsg?.role === 'assistant' && lastMsg.meta_json) {
-        try {
-          const meta = JSON.parse(lastMsg.meta_json) as { sources?: ChatSource[] }
-          setSources(meta.sources ?? [])
-        } catch {
-          setSources([])
-        }
-      } else setSources([])
     }
   }, [historyData])
 
@@ -99,7 +88,6 @@ export function ChatContainer({ sessionId, initialMessage }: ChatContainerProps)
     }
     setMessages(prev => [...prev, userMsg])
     setIsStreaming(true)
-    setSources([])
 
     abortControllerRef.current = new AbortController()
     
@@ -121,9 +109,6 @@ export function ChatContainer({ sessionId, initialMessage }: ChatContainerProps)
         apiClient.sendChatMessageStream(currentSessionId, content, {
           signal: abortControllerRef.current.signal,
           onMeta: (meta) => {
-            if (meta.sources) {
-              setSources(meta.sources)
-            }
             if (meta.user_message_id && meta.assistant_message_id) {
               streamingUserIdRef.current = meta.user_message_id
               streamingAssistantIdRef.current = meta.assistant_message_id
@@ -133,7 +118,6 @@ export function ChatContainer({ sessionId, initialMessage }: ChatContainerProps)
                   return {
                     ...m,
                     id: meta.assistant_message_id,
-                    meta_json: JSON.stringify({ sources: meta.sources }),
                   }
                 }
                 return m
@@ -181,10 +165,6 @@ export function ChatContainer({ sessionId, initialMessage }: ChatContainerProps)
           onNewChat={handleNewChat}
         />
       }
-      sourcesPanel={
-        <SourcesPanel sources={sources} />
-      }
-      showSources={sources.length > 0}
     >
       <div className="flex flex-col h-full w-full min-h-0">
         <div className="flex-1 min-h-0 overflow-hidden relative">
