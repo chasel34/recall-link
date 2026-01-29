@@ -15,6 +15,11 @@ export interface TabsProps {
 export function Tabs({ selectedKey, onSelectionChange, children, className, size = 'md' }: TabsProps) {
   const tabs = React.Children.toArray(children) as React.ReactElement[]
 
+  const normalizeKey = (key: React.Key | null | undefined) => {
+    if (key == null) return ''
+    return String(key).replace(/^\.\$/, '')
+  }
+
   const sizeClasses = {
     sm: "h-7",
     md: "h-9",
@@ -29,8 +34,8 @@ export function Tabs({ selectedKey, onSelectionChange, children, className, size
 
   return (
     <BaseTabs.Root 
-      value={selectedKey ? `.$${selectedKey}` : undefined} 
-      onValueChange={(val) => onSelectionChange?.(String(val).replace(/^\.\$/, ''))} 
+      value={selectedKey}
+      onValueChange={(val) => onSelectionChange?.(String(val))}
       className={cn("flex flex-col", className)}
     >
       <BaseTabs.List
@@ -42,9 +47,9 @@ export function Tabs({ selectedKey, onSelectionChange, children, className, size
         {tabs.map(tab => (
            <BaseTabs.Tab
              key={tab.key}
-             value={tab.key as string}
+             value={normalizeKey(tab.key)}
              className={cn(
-                "inline-flex items-center justify-center whitespace-nowrap rounded-lg font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-[var(--shadow-card)] cursor-pointer",
+                "inline-flex items-center justify-center whitespace-nowrap rounded-lg font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-primary/15 data-[active]:text-foreground data-[active]:ring-1 data-[active]:ring-primary/25 data-[active]:shadow-sm cursor-pointer",
                 tabSizeClasses[size]
               )}
             >
