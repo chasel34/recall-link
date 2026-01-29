@@ -34,6 +34,9 @@ export function ChatContainer({ sessionId, initialMessage }: ChatContainerProps)
   // Sync history to local state
   useEffect(() => {
     if (historyData?.messages) {
+      // Don't overwrite optimistic/streaming local state with partial history.
+      // History can lag while the assistant stream is in-flight.
+      if (isStreaming || streamingUserIdRef.current || streamingAssistantIdRef.current) return
       setMessages(historyData.messages)
     }
   }, [historyData])
