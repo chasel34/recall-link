@@ -1,19 +1,11 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { useItems } from '@/hooks/use-items'
-import { ItemsGrid } from '@/components/items/items-grid'
+import { createFileRoute, Navigate } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/items/tags/$tag')({
-  component: TagItemsPage,
+  component: TagItemsRedirect,
 })
 
-function TagItemsPage() {
+function TagItemsRedirect() {
   const { tag } = Route.useParams()
-  const { data, isLoading } = useItems({ tags: tag })
 
-  return (
-    <div className="p-6">
-      <h2 className="text-xl font-semibold mb-4">标签: {tag}</h2>
-      <ItemsGrid items={data?.items || []} isLoading={isLoading} />
-    </div>
-  )
+  return <Navigate to="/items" search={{ tag }} replace />
 }

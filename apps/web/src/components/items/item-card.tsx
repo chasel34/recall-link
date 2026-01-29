@@ -22,7 +22,7 @@ export function ItemCard({ item }: ItemCardProps) {
   return (
     <Link to="/items/$id" params={{ id: item.id }}>
       <Card className="group h-full overflow-hidden border border-border/60 bg-card shadow-[var(--shadow-card)] transition-all duration-500 ease-out hover:shadow-[var(--shadow-float)] hover:-translate-y-1">
-        <CardHeader className="aspect-[16/10] p-0 overflow-hidden bg-sidebar/40 flex items-center justify-center relative">
+        <CardHeader className="aspect-[16/9] p-0 overflow-hidden bg-sidebar/40 flex items-center justify-center relative">
           <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20" />
           {item.domain && (
             <div className="text-center z-10">
@@ -32,7 +32,7 @@ export function ItemCard({ item }: ItemCardProps) {
             </div>
           )}
         </CardHeader>
-        <CardBody className="p-6 space-y-4">
+        <CardBody className="p-5 space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
               {item.domain || 'link'}
@@ -42,7 +42,7 @@ export function ItemCard({ item }: ItemCardProps) {
             </span>
           </div>
 
-          <h3 className="font-serif font-semibold text-lg leading-snug line-clamp-2 text-foreground/90 group-hover:text-primary transition-colors">
+          <h3 className="font-serif font-semibold text-base leading-snug line-clamp-2 text-foreground/90 group-hover:text-primary transition-colors">
             {displayTitle}
           </h3>
 
@@ -51,7 +51,7 @@ export function ItemCard({ item }: ItemCardProps) {
           </p>
 
           {item.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 pt-2">
+            <div className="flex flex-wrap gap-2 pt-1">
               {visibleTags.map((tag) => (
                 <Chip
                   key={tag}

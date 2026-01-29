@@ -11,6 +11,7 @@ import { LayoutGrid, List } from 'lucide-react'
 
 const itemsSearchSchema = z.object({
   q: z.string().optional(),
+  tag: z.string().optional(),
   page: z.number().int().positive().optional(),
 })
 
@@ -22,19 +23,23 @@ export const Route = createFileRoute('/items/')({
 function ItemsPage() {
   const search = Route.useSearch()
   const { mode } = useSearchMode()
+  const tag = typeof search.tag === 'string' ? search.tag : undefined
   const query = mode === 'content' ? search.q : undefined
-  const { data, isLoading } = useItems({ q: query })
+  const itemsQuery = useItems({ q: query, tags: tag })
   const [showCreateDialog, setShowCreateDialog] = useState(false)
+
+  const items = itemsQuery.data?.items ?? []
+  const showSkeleton = itemsQuery.isPending && itemsQuery.data == null
 
   return (
     <>
-      <div className="flex flex-col min-h-full">
-        <div className="sticky top-0 z-10 bg-background/70 backdrop-blur-md pb-5 pt-5 border-b border-border/40">
-          <div className="max-w-7xl mx-auto px-6 lg:px-10">
+        <div className="flex flex-col min-h-full">
+          <div className="sticky top-0 z-10 bg-background/70 backdrop-blur-md pb-5 pt-5 border-b border-border/40">
+          <div className="max-w-7xl 2xl:max-w-[88rem] mx-auto px-4 lg:px-8">
             <ItemsSearchBar onCreateClick={() => setShowCreateDialog(true)} />
           </div>
         </div>
-        <div className="max-w-7xl mx-auto w-full px-6 lg:px-10 py-10">
+        <div className="max-w-7xl 2xl:max-w-[88rem] mx-auto w-full px-4 lg:px-8 py-10">
           <div className="mb-10 flex items-end justify-between gap-6">
             <div>
               <h1 className="font-serif text-3xl font-semibold tracking-tight text-foreground/90">
@@ -66,7 +71,7 @@ function ItemsPage() {
               </Button>
             </div>
           </div>
-          <ItemsGrid items={data?.items || []} isLoading={isLoading} />
+          <ItemsGrid items={items} isLoading={showSkeleton} />
         </div>
       </div>
 

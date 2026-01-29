@@ -1,13 +1,12 @@
-import { Link, useParams, useSearch } from '@tanstack/react-router'
+import { Link, useSearch } from '@tanstack/react-router'
 import { useTags } from '@/hooks/use-tags'
 import { Chip, Skeleton } from '@/components/base'
 import { useSearchMode } from '@/hooks/use-search-mode'
 import { Clock, Inbox } from 'lucide-react'
 
 export function ItemsTagSidebar() {
-  const params = useParams({ strict: false })
   const search = useSearch({ strict: false })
-  const currentTag = params.tag as string | undefined
+  const currentTag = typeof (search as { tag?: unknown }).tag === 'string' ? (search as { tag: string }).tag : undefined
   const { mode } = useSearchMode()
   const { data: tags, isLoading } = useTags()
   const query = typeof search.q === 'string' ? search.q : ''
@@ -30,8 +29,9 @@ export function ItemsTagSidebar() {
       : tags
 
   return (
-    <div className="h-full flex flex-col px-6 py-7">
-      <div className="space-y-10">
+    <div className="h-full flex flex-col min-h-0">
+      <div className="flex-1 min-h-0 overflow-y-auto px-6 py-7">
+        <div className="space-y-10">
         <div>
           <h3 className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted-foreground/70 mb-5 px-2">
             分类
@@ -39,9 +39,10 @@ export function ItemsTagSidebar() {
           <div className="space-y-1">
             <Link
               to="/items"
+              search={(prev) => ({ ...prev, tag: undefined })}
               className={`block px-4 py-2.5 rounded-xl text-[13px] transition-all ${
                 !currentTag
-                  ? 'bg-card shadow-[var(--shadow-card)] ring-1 ring-border/60 text-foreground font-semibold'
+                  ? 'bg-primary/10 shadow-[var(--shadow-card)] ring-1 ring-primary/20 text-foreground font-semibold'
                   : 'text-muted-foreground hover:text-foreground hover:bg-card/60'
               }`}
             >
@@ -73,11 +74,11 @@ export function ItemsTagSidebar() {
             {visibleTags?.map((tag) => (
               <Link
                 key={tag.id}
-                to="/items/tags/$tag"
-                params={{ tag: tag.name }}
+                to="/items"
+                search={(prev) => ({ ...prev, tag: tag.name })}
                 className={`flex items-center justify-between px-3 py-2 rounded-xl text-[13px] transition-all group ${
                   currentTag === tag.name
-                    ? 'bg-card shadow-[var(--shadow-card)] ring-1 ring-border/60 text-foreground font-semibold'
+                    ? 'bg-primary/10 shadow-[var(--shadow-card)] ring-1 ring-primary/20 text-foreground font-semibold'
                     : 'text-muted-foreground hover:text-foreground hover:bg-card/60'
                 }`}
               >
@@ -85,7 +86,7 @@ export function ItemsTagSidebar() {
                   <span
                     className={`w-1.5 h-1.5 rounded-full mr-3 transition-colors ${
                       currentTag === tag.name
-                        ? 'bg-primary/70'
+                        ? 'bg-primary'
                         : 'bg-border group-hover:bg-primary/60'
                     }`}
                   />
@@ -96,7 +97,7 @@ export function ItemsTagSidebar() {
                   variant="flat"
                   className={`ml-2 h-5 min-w-6 flex justify-center px-1.5 text-[10px] font-bold ${
                     currentTag === tag.name
-                      ? 'bg-muted text-foreground'
+                      ? 'bg-primary/15 text-primary'
                       : 'bg-muted/70 text-muted-foreground group-hover:bg-muted'
                   }`}
                 >
@@ -105,6 +106,7 @@ export function ItemsTagSidebar() {
               </Link>
             ))}
           </div>
+        </div>
         </div>
       </div>
     </div>
