@@ -2,6 +2,7 @@ import { Link, useParams, useSearch } from '@tanstack/react-router'
 import { useTags } from '@/hooks/use-tags'
 import { Chip, Skeleton } from '@/components/base'
 import { useSearchMode } from '@/hooks/use-search-mode'
+import { Clock, Inbox } from 'lucide-react'
 
 export function ItemsTagSidebar() {
   const params = useParams({ strict: false })
@@ -13,7 +14,7 @@ export function ItemsTagSidebar() {
 
   if (isLoading) {
     return (
-      <div className="h-full flex flex-col p-4 space-y-2 bg-card/50">
+      <div className="h-full flex flex-col p-6 space-y-2">
         {[...Array(8)].map((_, i) => (
           <Skeleton key={i} className="rounded-md">
             <div className="h-8 w-full bg-muted/80" />
@@ -29,43 +30,74 @@ export function ItemsTagSidebar() {
       : tags
 
   return (
-    <div className="h-full flex flex-col p-4 bg-card/30">
-      <div className="space-y-1">
-        <Link
-          to="/items"
-          className={`block px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-            !currentTag
-              ? 'bg-foreground text-background shadow-sm'
-              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-          }`}
-        >
-          全部
-        </Link>
-
-        <div className="mt-6">
-          <h3 className="px-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3">
-            标签
+    <div className="h-full flex flex-col px-6 py-7">
+      <div className="space-y-10">
+        <div>
+          <h3 className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted-foreground/70 mb-5 px-2">
+            分类
           </h3>
           <div className="space-y-1">
+            <Link
+              to="/items"
+              className={`block px-4 py-2.5 rounded-xl text-[13px] transition-all ${
+                !currentTag
+                  ? 'bg-card shadow-[var(--shadow-card)] ring-1 ring-border/60 text-foreground font-semibold'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-card/60'
+              }`}
+            >
+              所有收藏
+            </Link>
+
+            <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] text-muted-foreground/60 bg-transparent cursor-not-allowed select-none">
+              <Clock className="w-4 h-4" />
+              最近添加
+              <span className="ml-auto text-[10px] font-semibold text-muted-foreground/50">即将上线</span>
+            </div>
+
+            <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] text-muted-foreground/60 bg-transparent cursor-not-allowed select-none">
+              <Inbox className="w-4 h-4" />
+              待处理
+              <span className="ml-auto text-[10px] font-semibold text-muted-foreground/50">即将上线</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-5 px-2">
+            <h3 className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted-foreground/70">
+              标签
+            </h3>
+          </div>
+
+          <div className="space-y-0.5">
             {visibleTags?.map((tag) => (
               <Link
                 key={tag.id}
                 to="/items/tags/$tag"
                 params={{ tag: tag.name }}
-                className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all group ${
+                className={`flex items-center justify-between px-3 py-2 rounded-xl text-[13px] transition-all group ${
                   currentTag === tag.name
-                    ? 'bg-muted/80 text-foreground font-semibold'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    ? 'bg-card shadow-[var(--shadow-card)] ring-1 ring-border/60 text-foreground font-semibold'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-card/60'
                 }`}
               >
-                <span className="truncate font-medium">{tag.name}</span>
+                <span className="flex items-center min-w-0">
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full mr-3 transition-colors ${
+                      currentTag === tag.name
+                        ? 'bg-primary/70'
+                        : 'bg-border group-hover:bg-primary/60'
+                    }`}
+                  />
+                  <span className="truncate font-medium">{tag.name}</span>
+                </span>
                 <Chip
                   size="sm"
-                  variant={currentTag === tag.name ? "solid" : "flat"}
-                  className={`ml-2 h-5 min-w-5 flex justify-center px-1 text-[10px] font-bold ${
+                  variant="flat"
+                  className={`ml-2 h-5 min-w-6 flex justify-center px-1.5 text-[10px] font-bold ${
                     currentTag === tag.name
-                      ? 'bg-foreground text-background'
-                      : 'bg-muted text-muted-foreground group-hover:bg-muted/80'
+                      ? 'bg-muted text-foreground'
+                      : 'bg-muted/70 text-muted-foreground group-hover:bg-muted'
                   }`}
                 >
                   {tag.item_count}

@@ -54,15 +54,15 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     }
 
     const variantStyles = {
-      bordered: "border-2 border-border bg-transparent focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
-      flat: "bg-muted hover:bg-muted/80",
-      faded: "bg-muted/50 border border-border hover:bg-muted",
+      bordered: "border border-border/70 bg-card/40 hover:bg-card/60 focus-within:bg-card focus-within:border-border focus-within:shadow-[var(--shadow-card)]",
+      flat: "bg-muted/60 border border-transparent hover:bg-muted focus-within:bg-card focus-within:border-border/70 focus-within:shadow-[var(--shadow-card)]",
+      faded: "bg-muted/40 border border-border/60 hover:bg-muted/60",
       underlined: "border-b-2 border-border rounded-none px-0",
-      solid: "bg-secondary text-secondary-foreground",
+      solid: "bg-foreground text-background",
     }
 
     const wrapperClasses = cn(
-      "relative flex w-full items-center gap-2 rounded-lg transition-colors overflow-hidden",
+      "relative flex w-full items-center gap-2 rounded-xl transition-colors overflow-hidden",
       sizeStyles[size],
       variantStyles[variant],
       isInvalid && "border-destructive focus-within:ring-destructive",

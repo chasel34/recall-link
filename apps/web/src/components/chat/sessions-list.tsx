@@ -17,30 +17,31 @@ export function SessionsList({ currentSessionId, onNewChat }: SessionsListProps)
 
   return (
     <div className="flex flex-col h-full w-full min-h-0">
-      <div className="p-4 border-b border-border">
-        <Button 
-          className="w-full justify-start font-medium" 
-          color="primary" 
-          variant="flat"
-          startContent={<MessageSquarePlus className="w-4 h-4" />}
+      <div className="h-20 px-6 flex items-center justify-between border-b border-border/40">
+        <h2 className="text-sm font-semibold text-foreground/90 tracking-tight">知识对话</h2>
+        <Button
+          isIconOnly
+          variant="light"
           onPress={() => {
             if (onNewChat) onNewChat()
             navigate({ to: '/chat' })
           }}
+          aria-label="新对话"
+          className="w-10 h-10 rounded-2xl hover:bg-card/70"
         >
-          新对话
+          <MessageSquarePlus className="w-5 h-5" />
         </Button>
       </div>
       
       <ScrollShadow className="flex-1 overflow-y-auto">
         {isLoading ? (
-          <div className="p-4 space-y-2">
+          <div className="p-5 space-y-2">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-10 rounded-lg bg-muted animate-pulse" />
+              <div key={i} className="h-14 rounded-2xl bg-muted/70 animate-pulse" />
             ))}
           </div>
         ) : (
-          <div className="p-2">
+          <div className="p-4">
             <Listbox 
               aria-label="Chat Sessions"
               variant="flat"
@@ -49,7 +50,7 @@ export function SessionsList({ currentSessionId, onNewChat }: SessionsListProps)
               selectedKeys={currentSessionId ? [currentSessionId] : []}
               onAction={(key) => navigate({ to: `/chat/${key}` })}
                 classNames={{
-                list: "gap-1"
+                list: "gap-2"
               }}
             >
               {sessions.map((session) => (
@@ -57,12 +58,14 @@ export function SessionsList({ currentSessionId, onNewChat }: SessionsListProps)
                   key={session.id}
                   textValue={session.title || "新对话"}
                   className={cn(
-                    "px-3 py-2 rounded-lg data-[selected=true]:bg-muted data-[selected=true]:text-foreground",
-                    currentSessionId === session.id ? "bg-muted font-medium text-foreground" : "text-muted-foreground"
+                    "p-4 rounded-2xl border border-transparent hover:border-border/60 hover:bg-card/60 transition-all",
+                    currentSessionId === session.id
+                      ? "bg-card shadow-[var(--shadow-card)] ring-1 ring-border/60 text-foreground"
+                      : "text-muted-foreground"
                   )}
                 >
                   <div className="flex flex-col gap-1">
-                    <span className="truncate text-sm">
+                    <span className="truncate text-sm font-medium">
                       {session.title || "新对话"}
                     </span>
                   </div>

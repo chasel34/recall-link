@@ -6,6 +6,8 @@ import { ItemsGrid } from '@/components/items/items-grid'
 import { ItemsSearchBar } from '@/components/items/items-search-bar'
 import { CreateItemDialog } from '@/components/items/create-item-dialog'
 import { useSearchMode } from '@/hooks/use-search-mode'
+import { Button } from '@/components/base'
+import { LayoutGrid, List } from 'lucide-react'
 
 const itemsSearchSchema = z.object({
   q: z.string().optional(),
@@ -27,10 +29,43 @@ function ItemsPage() {
   return (
     <>
       <div className="flex flex-col min-h-full">
-        <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md pb-4 pt-4 px-6 border-b border-border">
-           <ItemsSearchBar onCreateClick={() => setShowCreateDialog(true)} />
+        <div className="sticky top-0 z-10 bg-background/70 backdrop-blur-md pb-5 pt-5 border-b border-border/40">
+          <div className="max-w-7xl mx-auto px-6 lg:px-10">
+            <ItemsSearchBar onCreateClick={() => setShowCreateDialog(true)} />
+          </div>
         </div>
-        <div className="p-6">
+        <div className="max-w-7xl mx-auto w-full px-6 lg:px-10 py-10">
+          <div className="mb-10 flex items-end justify-between gap-6">
+            <div>
+              <h1 className="font-serif text-3xl font-semibold tracking-tight text-foreground/90">
+                所有收藏
+              </h1>
+              <p className="mt-2 text-sm text-muted-foreground">
+                沉淀思想，记录每一个灵感瞬间。
+              </p>
+            </div>
+
+            <div className="flex items-center bg-muted/50 p-1 rounded-xl ring-1 ring-border/60">
+              <Button
+                isIconOnly
+                isDisabled
+                variant="flat"
+                className="w-9 h-9 bg-card shadow-[var(--shadow-card)] ring-1 ring-border/60"
+                aria-label="网格视图"
+              >
+                <LayoutGrid className="w-4.5 h-4.5" />
+              </Button>
+              <Button
+                isIconOnly
+                isDisabled
+                variant="light"
+                className="w-9 h-9 text-muted-foreground"
+                aria-label="列表视图"
+              >
+                <List className="w-4.5 h-4.5" />
+              </Button>
+            </div>
+          </div>
           <ItemsGrid items={data?.items || []} isLoading={isLoading} />
         </div>
       </div>

@@ -6,7 +6,7 @@ Recall Link uses a warm-neutral, calm aesthetic designed for focus and clarity. 
 
 - **Atmosphere**: Warm-neutral, calm, and spacious. (Light-only for now)
 - **Surface**: Subtle elevation with soft shadows, generous whitespace.
-- **Edges**: Highly rounded corners (`0.625rem` base radius) for cards and inputs.
+- **Edges**: Highly rounded corners (`0.75rem` base radius) for cards and inputs.
 - **Borders**: Soft, low-contrast borders.
 - **Elements**: Pill-shaped chips and buttons where appropriate.
 
@@ -26,7 +26,7 @@ To ensure a refined aesthetic across all languages, we use the following system 
 - **Headings (Serif)**: `"Songti SC", "Noto Serif CJK SC", ui-serif, Georgia, serif`
 - **Body/UI (Sans)**: `"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif`
 
-Note: Future iterations may include self-hosted Noto Serif/Sans for absolute consistency.
+Note: We currently load **Inter** + **Noto Serif SC** via Google Fonts in `apps/web/index.html` for consistency, with CJK-friendly system fallbacks.
 
 ### Type Scale
 
@@ -51,7 +51,7 @@ Tokens are defined in `apps/web/src/index.css`. We use OKLCH for better color ma
 | `--background` | Page background (warm-white/paper) |
 | `--foreground` | Main text color (deep charcoal/warm-black) |
 | `--card` | Surface color for cards and panels |
-| `--primary` | Main action color (warm orange/terracotta) |
+| `--primary` | Brand accent color (warm taupe) |
 | `--secondary` | Subtle action color (muted teal/sage) |
 | `--muted` | Decorative or disabled elements |
 | `--muted-foreground` | Low-priority text |

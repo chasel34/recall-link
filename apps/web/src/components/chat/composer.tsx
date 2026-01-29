@@ -28,14 +28,14 @@ export function Composer({ onSend, onStop, isStreaming, isLoading }: ComposerPro
   }
 
   return (
-    <div className="p-4 border-t border-border bg-background/50 backdrop-blur-md">
-      <div className="max-w-3xl mx-auto relative flex gap-2 items-end bg-card p-2 rounded-2xl border border-border focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all shadow-sm">
+    <div className="px-6 lg:px-10 py-6 border-t border-border/40 bg-background/70 backdrop-blur-md">
+      <div className="max-w-3xl mx-auto relative flex gap-2 items-end bg-card p-2 rounded-3xl border border-border/60 focus-within:border-border focus-within:shadow-[var(--shadow-card)] transition-all">
         <Textarea
           ref={textareaRef}
           value={value}
           onValueChange={setValue}
           onKeyDown={handleKeyDown}
-          placeholder="Ask anything..."
+          placeholder="询问你的收藏知识库..."
           minRows={1}
           maxRows={8}
           variant="flat"
@@ -61,11 +61,11 @@ export function Composer({ onSend, onStop, isStreaming, isLoading }: ComposerPro
             <Button
               isIconOnly
               size="sm"
-              color="primary"
+              color="default"
               variant="solid"
               onPress={handleSubmit}
               isDisabled={!value.trim() || isLoading}
-              className="rounded-full"
+              className="rounded-2xl"
             >
               <ArrowUp className="w-5 h-5" />
             </Button>
@@ -74,7 +74,7 @@ export function Composer({ onSend, onStop, isStreaming, isLoading }: ComposerPro
       </div>
       <div className="max-w-3xl mx-auto mt-2 text-center">
         <p className="text-[10px] text-muted-foreground">
-          AI can make mistakes. Check important info.
+          使用 AI 生成的内容请核对关键信息。
         </p>
       </div>
     </div>

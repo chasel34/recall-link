@@ -44,14 +44,16 @@ export function ItemsSearchBar({ onCreateClick }: ItemsSearchBarProps) {
       <div className="flex items-center gap-3">
         <div className="flex-1">
           <Input
-            placeholder={mode === 'content' ? '搜索内容...' : '搜索标签...'}
+            placeholder={mode === 'content' ? '搜索你的记忆...' : '搜索标签...'}
             value={query}
             onValueChange={setQuery}
             startContent={<Search className="h-4 w-4 text-muted-foreground" />}
             size="sm"
             isClearable
+            variant="flat"
             classNames={{
-              inputWrapper: "bg-muted",
+              inputWrapper: "px-4 bg-muted/50 border border-border/60 focus-within:border-border",
+              input: "font-medium",
             }}
           />
         </div>
@@ -67,8 +69,14 @@ export function ItemsSearchBar({ onCreateClick }: ItemsSearchBarProps) {
           <Tab key="tags" title="标签" />
         </Tabs>
 
-        <Button onPress={onCreateClick} color="primary" size="sm" startContent={<Plus className="h-4 w-4" />}>
-          保存网页
+        <Button
+          onPress={onCreateClick}
+          color="default"
+          size="sm"
+          startContent={<Plus className="h-4 w-4" />}
+          className="rounded-full px-5"
+        >
+          + 保存网页
         </Button>
       </div>
 

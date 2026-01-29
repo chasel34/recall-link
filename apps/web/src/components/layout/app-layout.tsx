@@ -21,7 +21,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   return (
     <div className="flex h-screen w-full bg-background">
       {/* Desktop Primary Rail */}
-      <aside className="hidden md:block w-16 h-full shrink-0 z-20">
+      <aside className="hidden md:block w-20 h-full shrink-0 z-20">
         <PrimaryNavRail className="h-full" />
       </aside>
 
@@ -31,7 +31,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       </aside>
 
       <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
-        <nav className="md:hidden border-b border-border flex items-center h-16 px-4 bg-background">
+        <nav className="md:hidden border-b border-border/40 flex items-center h-16 px-4 bg-background/70 backdrop-blur-md">
           <div className="flex items-center justify-start gap-2">
             <div>
               <Button isIconOnly variant="light" onPress={onOpen} aria-label="打开菜单">
@@ -39,7 +39,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               </Button>
             </div>
             <div>
-              <span className="font-bold text-lg">Recall Link</span>
+              <span className="font-serif font-semibold text-lg text-foreground/90">Recall Link</span>
             </div>
           </div>
         </nav>

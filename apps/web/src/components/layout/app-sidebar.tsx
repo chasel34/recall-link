@@ -20,9 +20,9 @@ export function AppSidebar({ onItemClick, children }: AppSidebarProps) {
   ]
 
   return (
-    <div className="h-full flex flex-col bg-background">
-      <div className="p-6 border-b border-border">
-        <h1 className="text-xl font-bold">Recall Link</h1>
+    <div className="h-full flex flex-col bg-sidebar">
+      <div className="p-6 border-b border-border/40">
+        <h1 className="text-xl font-semibold font-serif text-foreground/90">Recall Link</h1>
       </div>
       <div className="p-4 space-y-2">
         {menuItems.map((item) => (

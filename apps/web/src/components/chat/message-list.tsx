@@ -6,6 +6,7 @@ import rehypeSanitize, { defaultSchema } from "rehype-sanitize"
 import { ChatMessage } from "../../lib/api-client"
 import { cn } from "../../lib/utils"
 import { SourcesBlock, SourceItem } from "./inline-sources"
+import { Sparkles, User } from "lucide-react"
 
 interface MessageListProps {
   messages: ChatMessage[]
@@ -34,8 +35,8 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
   }), [])
 
   return (
-    <ScrollShadow className="h-full w-full p-4 overflow-y-auto">
-      <div className="max-w-3xl mx-auto flex flex-col gap-6 py-4">
+    <ScrollShadow className="h-full w-full overflow-y-auto px-6 lg:px-10 py-10">
+      <div className="max-w-3xl mx-auto flex flex-col gap-10">
         {messages.map((msg, index) => {
           const isUser = msg.role === "user"
           const isLast = index === messages.length - 1
@@ -49,35 +50,64 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
             : undefined
 
           return (
-              <div
-                key={msg.id}
-                className={cn(
-                  "flex w-full",
-                  isUser ? "justify-end" : "justify-start"
-                )}
-              >
+            <div
+              key={msg.id}
+              className={cn(
+                "flex w-full",
+                isUser ? "justify-end" : "justify-start"
+              )}
+            >
+              <div className="max-w-[88%]">
                 <div
                   className={cn(
-                    "relative max-w-[85%] rounded-2xl px-5 py-3.5 text-sm shadow-sm",
+                    "flex items-center gap-3 mb-3",
+                    isUser ? "justify-end" : "justify-start"
+                  )}
+                >
+                  {!isUser ? (
+                    <>
+                      <div className="w-6 h-6 rounded-lg bg-primary/15 flex items-center justify-center">
+                        <Sparkles className="w-3.5 h-3.5 text-primary" />
+                      </div>
+                      <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-[0.22em]">
+                        Recall Link AI
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-[0.22em]">
+                        YOU
+                      </span>
+                      <div className="w-6 h-6 rounded-lg bg-muted/70 border border-border/60 flex items-center justify-center">
+                        <User className="w-3.5 h-3.5 text-muted-foreground" />
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div
+                  className={cn(
+                    "relative rounded-3xl px-6 py-5 text-[15px] leading-relaxed",
                     isUser
-                      ? "bg-primary text-primary-foreground rounded-br-sm"
-                      : "bg-card text-foreground border border-border rounded-bl-sm"
+                      ? "bg-card text-foreground border border-border/60 shadow-[var(--shadow-card)]"
+                      : "bg-muted/60 text-foreground/90 border border-border/40"
                   )}
                 >
                   {isUser ? (
-                    <div className="whitespace-pre-wrap">{msg.content}</div>
+                    <div className="whitespace-pre-wrap font-medium">{msg.content}</div>
                   ) : (
-                    <div className="prose prose-neutral dark:prose-invert max-w-none prose-sm prose-p:my-1 prose-pre:my-1 prose-headings:my-2 font-sans">
-                      <Streamdown 
+                    <div className="prose prose-neutral dark:prose-invert max-w-none prose-sm prose-p:my-2 prose-pre:my-2 prose-headings:my-3 font-serif">
+                      <Streamdown
                         isAnimating={isLast && isStreaming}
-                      components={components}
-                      rehypePlugins={rehypePlugins}
-                      remarkRehypeOptions={remarkRehypeOptions}
-                    >
-                      {msg.content}
-                    </Streamdown>
-                  </div>
-                )}
+                        components={components}
+                        rehypePlugins={rehypePlugins}
+                        remarkRehypeOptions={remarkRehypeOptions}
+                      >
+                        {msg.content}
+                      </Streamdown>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )

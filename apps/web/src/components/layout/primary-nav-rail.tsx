@@ -18,9 +18,9 @@ export function PrimaryNavRail({ className }: PrimaryNavRailProps) {
   ]
 
   return (
-    <div className={`flex flex-col items-center py-4 bg-background border-r border-border ${className}`}>
+    <div className={`flex flex-col items-center py-6 bg-sidebar border-r border-sidebar-border ${className}`}>
       <div className="mb-6">
-        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+        <div className="w-10 h-10 rounded-2xl bg-primary/15 flex items-center justify-center text-foreground shadow-[var(--shadow-card)]">
           <Command size={20} />
         </div>
       </div>
@@ -43,9 +43,13 @@ export function PrimaryNavRail({ className }: PrimaryNavRailProps) {
                 <Link to={item.path} className="block">
                   <Button
                     isIconOnly
-                    variant={isActive(item.path) ? "flat" : "light"}
-                    color={isActive(item.path) ? "primary" : "default"}
-                    className="w-10 h-10"
+                    variant="light"
+                    color="default"
+                    className={
+                      isActive(item.path)
+                        ? "w-10 h-10 bg-card text-foreground shadow-[var(--shadow-card)] ring-1 ring-border/60"
+                        : "w-10 h-10 text-muted-foreground hover:text-foreground hover:bg-card/60"
+                    }
                     as="div"
                     aria-label={item.name}
                   >

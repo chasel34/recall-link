@@ -4,6 +4,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --font-sans: "Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Noto Serif SC", "Songti SC", "Noto Serif CJK SC", ui-serif, Georgia, serif;
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -12,10 +15,10 @@
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
   
-  /* Elevation Shadows (Warm) */
-  --shadow-card: 0 1px 3px 0 oklch(0.25 0.015 85 / 0.05), 0 1px 2px -1px oklch(0.25 0.015 85 / 0.1);
-  --shadow-float: 0 4px 6px -1px oklch(0.25 0.015 85 / 0.1), 0 2px 4px -2px oklch(0.25 0.015 85 / 0.1);
-  --shadow-popover: 0 10px 15px -3px oklch(0.25 0.015 85 / 0.1), 0 4px 6px -4px oklch(0.25 0.015 85 / 0.1);
+  /* Elevation Shadows (Warm Paper) */
+  --shadow-card: 0 2px 10px -2px oklch(0.25 0.015 85 / 0.05), 0 0 0 1px oklch(0.55 0.02 85 / 0.06);
+  --shadow-float: 0 20px 40px -15px oklch(0.25 0.015 85 / 0.08), 0 0 0 1px oklch(0.55 0.02 85 / 0.10);
+  --shadow-popover: 0 24px 60px -20px oklch(0.25 0.015 85 / 0.14), 0 0 0 1px oklch(0.55 0.02 85 / 0.14);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -55,59 +58,59 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  
-  /* Base - Warm Paper */
+  --radius: 0.75rem;
+
+  /* Base - Paper */
   --background: oklch(0.985 0.006 85);
-  --foreground: oklch(0.25 0.015 85);
-  
+  --foreground: oklch(0.28 0.012 75);
+
   /* Surface */
-  --card: oklch(0.995 0.003 85);
-  --card-foreground: oklch(0.25 0.015 85);
-  --popover: oklch(0.995 0.003 85);
-  --popover-foreground: oklch(0.25 0.015 85);
-  
-  /* Primary - Terracotta */
-  --primary: oklch(0.60 0.16 45);
+  --card: oklch(0.998 0.002 85);
+  --card-foreground: oklch(0.28 0.012 75);
+  --popover: oklch(0.998 0.002 85);
+  --popover-foreground: oklch(0.28 0.012 75);
+
+  /* Brand Accent - Warm Taupe */
+  --primary: oklch(0.62 0.035 70);
   --primary-foreground: oklch(0.985 0.006 85);
-  
-  /* Secondary - Sage/Teal */
-  --secondary: oklch(0.94 0.03 150);
-  --secondary-foreground: oklch(0.30 0.04 150);
-  
+
+  /* Secondary */
+  --secondary: oklch(0.95 0.006 85);
+  --secondary-foreground: oklch(0.28 0.012 75);
+
   /* Muted */
-  --muted: oklch(0.95 0.01 85);
-  --muted-foreground: oklch(0.55 0.02 85);
-  
+  --muted: oklch(0.965 0.006 85);
+  --muted-foreground: oklch(0.52 0.012 75);
+
   /* Accent */
-  --accent: oklch(0.95 0.01 85);
-  --accent-foreground: oklch(0.25 0.015 85);
-  
+  --accent: oklch(0.965 0.006 85);
+  --accent-foreground: oklch(0.28 0.012 75);
+
   /* State */
-  --destructive: oklch(0.60 0.20 25);
+  --destructive: oklch(0.62 0.20 25);
   --destructive-foreground: oklch(0.985 0.006 85);
-  
+
   /* Borders & Input */
-  --border: oklch(0.90 0.01 85);
-  --input: oklch(0.90 0.01 85);
-  --ring: oklch(0.60 0.16 45);
-  
-  /* Charts - Warm Harmony */
-  --chart-1: oklch(0.60 0.16 45);
-  --chart-2: oklch(0.55 0.12 150);
-  --chart-3: oklch(0.45 0.15 250);
-  --chart-4: oklch(0.70 0.15 85);
-  --chart-5: oklch(0.60 0.15 30);
-  
+  --border: oklch(0.91 0.008 85);
+  --input: oklch(0.91 0.008 85);
+  --ring: oklch(0.62 0.035 70);
+
+  /* Charts */
+  --chart-1: oklch(0.62 0.035 70);
+  --chart-2: oklch(0.52 0.06 150);
+  --chart-3: oklch(0.50 0.08 250);
+  --chart-4: oklch(0.72 0.06 85);
+  --chart-5: oklch(0.60 0.08 35);
+
   /* Sidebar */
-  --sidebar: oklch(0.985 0.006 85);
-  --sidebar-foreground: oklch(0.25 0.015 85);
-  --sidebar-primary: oklch(0.60 0.16 45);
+  --sidebar: oklch(0.972 0.006 85);
+  --sidebar-foreground: oklch(0.28 0.012 75);
+  --sidebar-primary: oklch(0.62 0.035 70);
   --sidebar-primary-foreground: oklch(0.985 0.006 85);
-  --sidebar-accent: oklch(0.95 0.01 85);
-  --sidebar-accent-foreground: oklch(0.25 0.015 85);
-  --sidebar-border: oklch(0.90 0.01 85);
-  --sidebar-ring: oklch(0.60 0.16 45);
+  --sidebar-accent: oklch(0.965 0.006 85);
+  --sidebar-accent-foreground: oklch(0.28 0.012 75);
+  --sidebar-border: oklch(0.91 0.008 85);
+  --sidebar-ring: oklch(0.62 0.035 70);
 }
 
 .dark {
@@ -149,8 +152,11 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
     position: relative;
+    background-image:
+      radial-gradient(1100px 600px at 80% -200px, oklch(0.97 0.02 70 / 0.55), transparent 60%),
+      radial-gradient(900px 500px at -200px 20%, oklch(0.97 0.02 85 / 0.45), transparent 55%);
   }
   .lucide {
     stroke-width: 1.5;

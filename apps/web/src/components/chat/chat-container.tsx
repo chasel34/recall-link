@@ -4,6 +4,7 @@ import { Sparkles } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { apiClient, ChatMessage } from "../../lib/api-client"
 import { useChatMessages } from "../../hooks/use-chat-messages"
+import { useChatSessions } from "../../hooks/use-chat-sessions"
 import { Composer } from "./composer"
 import { MessageList } from "./message-list"
 
@@ -24,6 +25,11 @@ export function ChatContainer({ sessionId, initialMessage }: ChatContainerProps)
 
   // Fetch messages if sessionId exists
   const { data: historyData, isLoading: isLoadingHistory } = useChatMessages(sessionId || "")
+
+  const { data: sessionsData } = useChatSessions()
+  const sessionTitle = sessionId
+    ? sessionsData?.sessions?.find((s) => s.id === sessionId)?.title || "对话"
+    : "Recall Link AI"
 
   // Sync history to local state
   useEffect(() => {
@@ -154,7 +160,16 @@ export function ChatContainer({ sessionId, initialMessage }: ChatContainerProps)
   }
 
   return (
-    <div className="flex flex-col h-full w-full min-h-0">
+    <div className="flex flex-col h-full w-full min-h-0 bg-background">
+      <div className="h-20 flex items-center justify-between px-6 lg:px-10 border-b border-border/40 bg-background/70 backdrop-blur-md">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className={sessionId ? "w-2 h-2 rounded-full bg-emerald-500" : "w-2 h-2 rounded-full bg-muted-foreground/40"} />
+          <h1 className="text-sm font-semibold text-foreground/90 tracking-tight truncate">
+            {sessionTitle}
+          </h1>
+        </div>
+      </div>
+
       <div className="flex-1 min-h-0 overflow-hidden relative">
         {messages.length === 0 && !isLoadingHistory ? (
             <div className="h-full flex flex-col items-center justify-center p-8 text-center space-y-6">
@@ -164,7 +179,7 @@ export function ChatContainer({ sessionId, initialMessage }: ChatContainerProps)
               <div className="space-y-2 max-w-md">
                 <h2 className="font-serif text-2xl font-semibold text-foreground">Recall Link AI</h2>
                 <p className="text-muted-foreground">
-                  Ask questions about your saved items. I'll search through them and provide answers with sources.
+                  询问你的收藏知识库，我会结合来源为你整理答案。
                 </p>
               </div>
             </div>

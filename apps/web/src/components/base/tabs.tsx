@@ -33,18 +33,23 @@ export function Tabs({ selectedKey, onSelectionChange, children, className, size
       onValueChange={(val) => onSelectionChange?.(String(val).replace(/^\.\$/, ''))} 
       className={cn("flex flex-col", className)}
     >
-      <BaseTabs.List className={cn("inline-flex items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground", sizeClasses[size])}>
+      <BaseTabs.List
+        className={cn(
+          "inline-flex items-center justify-center rounded-xl bg-muted/60 p-1 text-muted-foreground ring-1 ring-border/60",
+          sizeClasses[size]
+        )}
+      >
         {tabs.map(tab => (
            <BaseTabs.Tab
              key={tab.key}
              value={tab.key as string}
              className={cn(
-               "inline-flex items-center justify-center whitespace-nowrap rounded-md font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow cursor-pointer",
-               tabSizeClasses[size]
-             )}
-           >
-             {tab.props.title}
-           </BaseTabs.Tab>
+                "inline-flex items-center justify-center whitespace-nowrap rounded-lg font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-[var(--shadow-card)] cursor-pointer",
+                tabSizeClasses[size]
+              )}
+            >
+              {tab.props.title}
+            </BaseTabs.Tab>
         ))}
       </BaseTabs.List>
     </BaseTabs.Root>

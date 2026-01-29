@@ -52,27 +52,27 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
        nativeButtonProp = false; 
     }
 
-    const baseStyles = "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 select-none cursor-pointer";
+    const baseStyles = "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background disabled:pointer-events-none disabled:opacity-50 select-none cursor-pointer active:scale-[0.98]";
 
     const variants = {
       solid: {
-        default: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        default: "bg-foreground text-background hover:bg-foreground/90",
         primary: "bg-primary text-primary-foreground hover:bg-primary/90",
         danger: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
       },
       bordered: {
-        default: "border-2 border-border bg-transparent hover:bg-accent hover:text-accent-foreground",
-        primary: "border-2 border-primary text-primary hover:bg-primary/10",
-        danger: "border-2 border-destructive text-destructive hover:bg-destructive/10",
+        default: "border border-border/70 bg-card/40 hover:bg-card/70 hover:border-border",
+        primary: "border border-primary/40 text-foreground hover:bg-primary/10 hover:border-primary/55",
+        danger: "border border-destructive/30 text-destructive hover:bg-destructive/10 hover:border-destructive/40",
       },
       light: {
-        default: "hover:bg-accent hover:text-accent-foreground",
-        primary: "text-primary hover:bg-primary/10",
+        default: "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+        primary: "text-foreground hover:bg-primary/10",
         danger: "text-destructive hover:bg-destructive/10",
       },
       flat: {
-        default: "bg-secondary/50 text-secondary-foreground hover:bg-secondary/80",
-        primary: "bg-primary/20 text-primary hover:bg-primary/30",
+        default: "bg-muted/60 text-foreground hover:bg-muted",
+        primary: "bg-primary/15 text-foreground hover:bg-primary/20",
         danger: "bg-destructive/10 text-destructive hover:bg-destructive/20",
       },
     };
