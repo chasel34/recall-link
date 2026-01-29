@@ -2,51 +2,54 @@ import { Skeleton } from '@/components/base'
 
 export function ItemDetailSkeleton() {
   return (
-    <div className="w-full mx-auto px-6 py-8">
-      <div className="flex items-center justify-between mb-8 pb-4 border-b border-border max-w-6xl 2xl:max-w-7xl mx-auto xl:w-full">
-        <Skeleton className="rounded-lg w-20 h-8" />
-        <div className="flex gap-2">
-          <Skeleton className="rounded-lg w-24 h-8" />
-          <Skeleton className="rounded-lg w-16 h-8" />
-        </div>
-      </div>
-
-      <div className="mb-10 flex flex-col items-center">
-        <Skeleton className="rounded-full w-20 h-20 mb-6" />
-        <Skeleton className="rounded-lg w-3/4 h-12 mb-4" />
-        <Skeleton className="rounded-full w-64 h-6" />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] xl:grid-cols-[minmax(0,1fr)_minmax(0,44rem)_18rem_minmax(0,1fr)] gap-10">
-        <div className="space-y-8 min-w-0 xl:col-start-2">
-          <Skeleton className="rounded-xl w-full h-32" />
-
-          <div className="space-y-4">
-             <Skeleton className="rounded-lg w-32 h-8" />
-             <div className="space-y-2">
-               <Skeleton className="rounded-lg w-full h-4" />
-               <Skeleton className="rounded-lg w-full h-4" />
-               <Skeleton className="rounded-lg w-5/6 h-4" />
-               <Skeleton className="rounded-lg w-full h-4" />
-               <Skeleton className="rounded-lg w-4/6 h-4" />
-             </div>
-             <div className="space-y-2 mt-4">
-               <Skeleton className="rounded-lg w-full h-32" />
-             </div>
+    <div className="w-full">
+      <div className="mx-auto max-w-5xl px-6 md:px-10 py-10">
+        <div className="sticky top-0 z-30 -mx-6 md:-mx-10 px-6 md:px-10 bg-background/70 backdrop-blur-md border-b border-border/40">
+          <div className="h-16 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <Skeleton className="rounded-lg w-20 h-8" />
+              <div className="hidden sm:block h-4 w-px bg-border/70" />
+              <Skeleton className="hidden sm:block rounded-lg w-56 h-4" />
+            </div>
+            <div className="flex items-center gap-2">
+              <Skeleton className="rounded-lg w-24 h-8" />
+              <Skeleton className="rounded-lg w-16 h-8" />
+            </div>
           </div>
         </div>
 
-        <div className="space-y-8 xl:col-start-3">
-           <div className="space-y-3">
-             <Skeleton className="rounded w-12 h-4" />
-             <div className="flex gap-2 flex-wrap">
-               <Skeleton className="rounded-full w-16 h-6" />
-               <Skeleton className="rounded-full w-20 h-6" />
-               <Skeleton className="rounded-full w-14 h-6" />
-             </div>
-           </div>
-          
-           <Skeleton className="rounded-lg w-full h-32" />
+        <div className="pt-10 pb-10">
+          <div className="flex items-center gap-2 mb-6">
+            <Skeleton className="rounded-full w-28 h-6" />
+            <Skeleton className="rounded-full w-24 h-6" />
+          </div>
+          <Skeleton className="rounded-xl w-5/6 h-14" />
+          <div className="mt-6 space-y-3">
+            <Skeleton className="rounded-full w-4/5 h-8" />
+            <div className="flex items-center gap-2 flex-wrap">
+              <Skeleton className="rounded-full w-20 h-7" />
+              <Skeleton className="rounded-full w-24 h-7" />
+              <Skeleton className="rounded-full w-28 h-7" />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_18rem] gap-10">
+          <div className="min-w-0 space-y-10">
+            <Skeleton className="rounded-2xl w-full h-44" />
+            <div className="space-y-3">
+              <Skeleton className="rounded-lg w-full h-5" />
+              <Skeleton className="rounded-lg w-full h-5" />
+              <Skeleton className="rounded-lg w-5/6 h-5" />
+              <Skeleton className="rounded-lg w-full h-5" />
+              <Skeleton className="rounded-lg w-4/6 h-5" />
+              <Skeleton className="rounded-lg w-full h-32 mt-6" />
+            </div>
+          </div>
+
+          <div className="space-y-8">
+            <Skeleton className="rounded-2xl w-full h-40" />
+          </div>
         </div>
       </div>
     </div>
