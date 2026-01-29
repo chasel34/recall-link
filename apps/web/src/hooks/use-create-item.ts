@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
-import { addToast } from '@heroui/react'
+import { addToast } from '@/lib/toast'
 
 export function useCreateItem() {
   const queryClient = useQueryClient()

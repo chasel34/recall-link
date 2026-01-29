@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { useNavigate } from '@tanstack/react-router'
-import { addToast } from '@heroui/react'
+import { addToast } from '@/lib/toast'
 
 export function useDeleteItem() {
   const queryClient = useQueryClient()

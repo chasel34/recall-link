@@ -8,7 +8,7 @@ import {
   ModalBody,
   ModalFooter,
   useDisclosure
-} from '@heroui/react'
+} from '@/components/base'
 import { ArrowLeft, Edit, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
@@ -30,18 +30,18 @@ export function ItemDetail({ item }: ItemDetailProps) {
 
   return (
     <div className="w-full mx-auto px-6 py-8">
-      <div className="flex items-center justify-between mb-8 pb-4 border-b border-default-200 max-w-6xl 2xl:max-w-7xl mx-auto xl:w-full">
+      <div className="flex items-center justify-between mb-8 pb-4 border-b border-border max-w-6xl 2xl:max-w-7xl mx-auto xl:w-full">
         <Button
           variant="light"
           size="sm"
           onPress={() => navigate({ to: '/items' })}
-          className="text-default-600 hover:text-default-900 -ml-2 font-medium"
+          className="text-muted-foreground hover:text-foreground -ml-2 font-medium"
         >
           <ArrowLeft className="mr-1 h-4 w-4" />
           返回列表
         </Button>
         <div className="flex gap-2">
-          <Button variant="flat" size="sm" isDisabled className="bg-default-100 text-default-400">
+          <Button variant="flat" size="sm" isDisabled className="bg-muted text-muted-foreground">
             <Edit className="mr-1 h-4 w-4" />
             编辑标签
           </Button>
@@ -50,7 +50,7 @@ export function ItemDetail({ item }: ItemDetailProps) {
             variant="flat" 
             size="sm" 
             onPress={onOpen}
-            className="bg-danger-50 text-danger-600 hover:bg-danger-100"
+            className="bg-destructive/10 text-destructive hover:bg-destructive/20"
           >
             <Trash2 className="mr-1 h-4 w-4" />
             删除
@@ -84,7 +84,7 @@ export function ItemDetail({ item }: ItemDetailProps) {
 
       <div className="mb-10 text-center">
         <div className="flex justify-center mb-6">
-           <div className="bg-default-100 rounded-full p-4">
+           <div className="bg-muted rounded-full p-4">
              <span className="text-4xl">
                {item.domain ? item.domain.charAt(0).toUpperCase() : '🔗'}
              </span>
@@ -98,7 +98,7 @@ export function ItemDetail({ item }: ItemDetailProps) {
             href={item.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-default-600 hover:text-default-900 hover:underline flex items-center gap-1 transition-colors bg-default-50 px-2 py-0.5 rounded-full border border-default-200"
+            className="text-muted-foreground hover:text-foreground hover:underline flex items-center gap-1 transition-colors bg-muted/50 px-2 py-0.5 rounded-full border border-border"
           >
             🔗 {item.url}
           </a>
@@ -111,17 +111,17 @@ export function ItemDetail({ item }: ItemDetailProps) {
       <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] xl:grid-cols-[minmax(0,1fr)_minmax(0,44rem)_18rem_minmax(0,1fr)] gap-10">
         <div className="space-y-8 min-w-0 xl:col-start-2">
           {item.summary && (
-            <div className="bg-card p-6 rounded-xl border border-default-100 shadow-sm relative overflow-hidden">
+            <div className="bg-card p-6 rounded-xl border border-border shadow-sm relative overflow-hidden">
               <div className="absolute top-0 right-0 p-4 opacity-5">
                 <svg width="100" height="100" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M14 17H4v2h10v-2zm6-8H4v2h16V9zM4 15h16v-2H4v2zM4 5v2h16V5H4z"/>
                 </svg>
               </div>
-              <h2 className="text-sm font-bold text-default-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+              <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
                 <span className="w-2 h-2 bg-warning rounded-full"></span>
                 AI 摘要
               </h2>
-              <p className="text-default-700 leading-relaxed text-lg font-serif">
+              <p className="text-foreground leading-relaxed text-lg font-serif">
                 {item.summary}
               </p>
             </div>
@@ -129,7 +129,7 @@ export function ItemDetail({ item }: ItemDetailProps) {
 
           {(item.clean_html || item.clean_text) && (
             <div className="prose prose-lg max-w-none break-words dark:prose-invert">
-              <h2 className="text-xl font-bold mb-6 pb-2 border-b border-default-200">内容预览</h2>
+              <h2 className="text-xl font-bold mb-6 pb-2 border-b border-border">内容预览</h2>
               {item.clean_html ? (
                 <div
                   dangerouslySetInnerHTML={{ __html: item.clean_html }}
@@ -144,10 +144,10 @@ export function ItemDetail({ item }: ItemDetailProps) {
           )}
 
           {!item.clean_text && item.status === 'pending' && (
-            <div className="text-center py-12 bg-default-50 rounded-lg border border-dashed border-default-300">
+            <div className="text-center py-12 bg-muted/50 rounded-lg border border-dashed border-border">
               <div className="animate-pulse flex flex-col items-center">
-                <div className="h-4 w-4 bg-default-400 rounded-full mb-2"></div>
-                <p className="text-default-500 font-medium">正在获取网页内容...</p>
+                <div className="h-4 w-4 bg-muted-foreground rounded-full mb-2"></div>
+                <p className="text-muted-foreground font-medium">正在获取网页内容...</p>
               </div>
             </div>
           )}
@@ -156,14 +156,14 @@ export function ItemDetail({ item }: ItemDetailProps) {
         <div className="space-y-8 xl:col-start-3">
            {item.tags.length > 0 && (
             <div>
-              <h2 className="text-xs font-bold text-default-400 uppercase tracking-widest mb-4">标签</h2>
+              <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4">标签</h2>
               <div className="flex flex-wrap gap-2">
                 {item.tags.map((tag) => (
                   <Chip 
                     key={tag} 
                     size="sm"
                     variant="flat" 
-                    className="bg-default-100 hover:bg-default-200 text-default-700 transition-colors"
+                    className="bg-muted hover:bg-muted/80 text-foreground transition-colors"
                   >
                     {tag}
                   </Chip>
@@ -172,16 +172,16 @@ export function ItemDetail({ item }: ItemDetailProps) {
             </div>
           )}
           
-          <div className="bg-default-50 p-4 rounded-lg border border-default-200">
-             <h2 className="text-xs font-bold text-default-400 uppercase tracking-widest mb-3">信息</h2>
+          <div className="bg-muted/50 p-4 rounded-lg border border-border">
+             <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">信息</h2>
              <dl className="space-y-3 text-xs">
                <div>
-                 <dt className="text-default-500 mb-1">域名</dt>
+                  <dt className="text-muted-foreground mb-1">域名</dt>
                  <dd className="font-medium text-foreground">{item.domain}</dd>
                </div>
                <div>
-                 <dt className="text-default-500 mb-1">ID</dt>
-                 <dd className="font-mono text-default-400 truncate">{item.id}</dd>
+                  <dt className="text-muted-foreground mb-1">ID</dt>
+                  <dd className="font-mono text-muted-foreground truncate">{item.id}</dd>
                </div>
              </dl>
           </div>

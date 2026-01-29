@@ -1,5 +1,4 @@
 import type { ReactElement } from 'react'
-import { HeroUIProvider } from '@heroui/react'
 import {
   Outlet,
   RouterProvider,
@@ -9,13 +8,19 @@ import {
   createRouter,
 } from '@tanstack/react-router'
 import { render } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 export function renderWithRouter(ui: ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  })
   const rootRoute = createRootRoute({
     component: () => (
-      <HeroUIProvider>
-        <Outlet />
-      </HeroUIProvider>
+      <Outlet />
     ),
   })
 
@@ -37,5 +42,9 @@ export function renderWithRouter(ui: ReactElement) {
     history: createMemoryHistory({ initialEntries: ['/'] }),
   })
 
-  return render(<RouterProvider router={router} />)
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
+  )
 }

@@ -1,4 +1,4 @@
-import { Card, CardBody, CardFooter, Button } from "@heroui/react"
+import { Card, CardBody, CardFooter, Button } from "@/components/base"
 import { ExternalLink, FileText } from "lucide-react"
 import { Link } from "@tanstack/react-router"
 import type { ChatSource } from "@/lib/api-client"
@@ -29,16 +29,21 @@ export function SourceCard({ source }: SourceCardProps) {
       </CardBody>
       <CardFooter className="p-3 pt-0 flex justify-end gap-2">
         {source.item_id && (
-          <Button
-            as={Link}
-            to={`/items/${source.item_id}`}
-            size="sm"
-            variant="light"
-            color="primary"
-            className="text-xs h-7 min-w-0 px-2"
+          <Link
+            to="/items/$id"
+            params={{ id: source.item_id }}
+            className="outline-none"
           >
-            详情
-          </Button>
+            <Button
+              as="div"
+              size="sm"
+              variant="light"
+              color="primary"
+              className="text-xs h-7 min-w-0 px-2"
+            >
+              详情
+            </Button>
+          </Link>
         )}
         {source.url && (
           <Button

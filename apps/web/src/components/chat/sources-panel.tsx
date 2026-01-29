@@ -1,4 +1,4 @@
-import { ScrollShadow } from "@heroui/react"
+import { ScrollShadow } from "@/components/base"
 import { ChatSource } from "../../lib/api-client"
 import { SourceCard } from "./source-card"
 

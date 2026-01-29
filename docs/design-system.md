@@ -90,12 +90,13 @@ import { ArrowRight } from 'lucide-react';
 <ArrowRight size={20} strokeWidth={1.5} className="text-muted-foreground" />
 ```
 
-## HeroUI Theme Mapping
+## UI Primitives (Base UI)
 
-Recall Link uses HeroUI components reskinned to match our CSS tokens. The mapping is defined in `apps/web/src/hero.ts`.
+Recall Link uses **Base UI** for unstyled accessible primitives (Modals, Tabs, Tooltips) and custom Tailwind-based components for simpler elements (Cards, Chips, Buttons).
 
-- **Colors**: HeroUI `primary`, `secondary`, `success`, etc., are mapped to our warm-neutral palette.
-- **Radius**: HeroUI `md` radius should align with our `--radius`.
+- **Styling**: All components are styled using the Tailwind tokens defined in `apps/web/src/index.css`.
+- **Primitives**: Located in `apps/web/src/components/base/`.
+- **Logic**: Base UI handles state and accessibility; Tailwind handles the "Recall Link" aesthetic.
 
 ## Usage Guidelines
 
@@ -109,7 +110,7 @@ Never use hex codes in components. Use semantic classes:
 - `border-border`
 
 ### 3. Components
-Prefer HeroUI components for complex interactions (Modals, Dropdowns, Tabs) but ensure they are wrapped or styled to match the design system tokens.
+Prefer local primitives from `@/components/base` for UI elements. These are built on Base UI or pure Tailwind to ensure they adhere to our design system tokens.
 
 ### 4. Examples
 

@@ -16,7 +16,7 @@ export function SecondarySidebarSwitcher({ className }: SecondarySidebarSwitcher
 
   if (pathname.startsWith('/items')) {
     return (
-      <div className={className ?? "h-full w-64 border-r dark:border-default-100 flex flex-col bg-content2/20"}>
+      <div className={className ?? "h-full w-64 border-r border-border flex flex-col bg-card/20"}>
         <ItemsTagSidebar />
       </div>
     )
@@ -24,7 +24,7 @@ export function SecondarySidebarSwitcher({ className }: SecondarySidebarSwitcher
 
   if (pathname.startsWith('/chat')) {
     return (
-      <div className={className ?? "h-full w-64 border-r dark:border-default-100 flex flex-col bg-background"}>
+      <div className={className ?? "h-full w-64 border-r border-border flex flex-col bg-background"}>
         <SessionsList currentSessionId={chatId} />
       </div>
     )

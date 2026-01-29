@@ -1,4 +1,4 @@
-import { Button, Listbox, ListboxItem, ScrollShadow } from "@heroui/react"
+import { Button, Listbox, ListboxItem, ScrollShadow } from "@/components/base"
 import { useNavigate } from "@tanstack/react-router"
 import { MessageSquarePlus } from "lucide-react"
 import { useChatSessions } from "../../hooks/use-chat-sessions"

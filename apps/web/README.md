@@ -9,10 +9,8 @@ Modern, type-safe React web interface for Recall Link.
 - **Vite** - Build tool
 - **TanStack Router** - File-based routing with type-safe params
 - **TanStack Query** - Server state management
-- **HeroUI** - UI components (Coffee theme)
-- **Tailwind CSS** - Styling
-- **Zustand** - Client state management
-- **HeroUI Toast** - Toast notifications
+- **Base UI** - Unstyled UI primitives
+- **Tailwind CSS** - Styling via utility tokens
 
 ## Development
 
@@ -55,7 +53,7 @@ Agentation is wired into the root route and only renders in development (`import
 ```
 src/
 ├── components/
-│   ├── ui/              # shadcn/ui components
+│   ├── base/            # Base UI wrappers + Tailwind primitives
 │   ├── layout/          # AppSidebar, AppLayout
 │   └── items/           # Item-specific components
 ├── hooks/               # Custom React hooks

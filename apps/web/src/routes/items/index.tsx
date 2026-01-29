@@ -27,7 +27,7 @@ function ItemsPage() {
   return (
     <>
       <div className="flex flex-col min-h-full">
-        <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md pb-4 pt-4 px-6 border-b border-default-100">
+        <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md pb-4 pt-4 px-6 border-b border-border">
            <ItemsSearchBar onCreateClick={() => setShowCreateDialog(true)} />
         </div>
         <div className="p-6">

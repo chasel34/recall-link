@@ -2,7 +2,7 @@ import React from 'react'
 import { createRootRoute, Outlet } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/router-devtools'
 import { AppLayout } from '@/components/layout/app-layout'
-import { addToast, ToastProvider } from '@heroui/react'
+import { addToast, ToastViewport } from '@/lib/toast'
 import { queryClient } from '@/lib/query-client'
 import type { Item, ListItemsResponse } from '@/lib/api-client'
 import { subscribeSSE } from '@/lib/sse'
@@ -118,7 +118,7 @@ function Root() {
         <Outlet />
       </AppLayout>
       <AgentationDev />
-      <ToastProvider placement="bottom-right" maxVisibleToasts={3} />
+      <ToastViewport />
       <TanStackRouterDevtools />
     </>
   )

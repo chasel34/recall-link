@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { Card, CardHeader, CardBody, CardFooter, Chip } from '@heroui/react'
+import { Card, CardHeader, CardBody, CardFooter, Chip } from '@/components/base'
 import type { Item } from '@/lib/api-client'
 import { formatDistanceToNow } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
@@ -17,16 +17,16 @@ export function ItemCard({ item }: ItemCardProps) {
   return (
     <Link to="/items/$id" params={{ id: item.id }}>
       <Card className="h-full border-none shadow-sm hover:shadow-md transition-all hover:-translate-y-1 bg-card">
-        <CardHeader className="h-40 p-0 overflow-hidden bg-gradient-to-br from-default-100 to-default-200 flex items-center justify-center relative group">
+        <CardHeader className="h-40 p-0 overflow-hidden bg-gradient-to-br from-muted to-muted/80 flex items-center justify-center relative group">
           <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20" />
           {item.domain && (
             <div className="text-center z-10 transition-transform group-hover:scale-105">
               <div className="text-4xl mb-2 opacity-80">
-                <span className="font-serif italic text-default-600 font-bold text-5xl">
+                <span className="font-serif italic text-muted-foreground font-bold text-5xl">
                   {item.domain.charAt(0).toUpperCase()}
                 </span>
               </div>
-              <p className="text-xs font-medium tracking-wider text-default-500 uppercase">{item.domain}</p>
+              <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">{item.domain}</p>
             </div>
           )}
         </CardHeader>
@@ -40,19 +40,19 @@ export function ItemCard({ item }: ItemCardProps) {
           {item.tags.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-4">
               {visibleTags.map((tag) => (
-                <Chip key={tag} size="sm" variant="flat" className="bg-default-100 text-default-600 text-[10px] font-medium tracking-wide">
+                <Chip key={tag} size="sm" variant="flat" className="bg-muted text-muted-foreground text-[10px] font-medium tracking-wide">
                   {tag}
                 </Chip>
               ))}
               {remainingCount > 0 && (
-                <Chip size="sm" variant="light" className="text-default-400 text-[10px]">
+                <Chip size="sm" variant="light" className="text-muted-foreground text-[10px]">
                   +{remainingCount}
                 </Chip>
               )}
             </div>
           )}
         </CardBody>
-        <CardFooter className="px-5 py-4 text-[10px] text-muted-foreground font-medium tracking-widest uppercase border-t border-default-100 flex justify-between items-center">
+        <CardFooter className="px-5 py-4 text-[10px] text-muted-foreground font-medium tracking-widest uppercase border-t border-border flex justify-between items-center">
           <span>{item.domain}</span>
           <span>
             {formatDistanceToNow(new Date(item.created_at), {

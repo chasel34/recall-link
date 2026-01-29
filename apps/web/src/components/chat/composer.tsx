@@ -1,4 +1,4 @@
-import { Button, Textarea } from "@heroui/react"
+import { Button, Textarea } from "@/components/base"
 import { ArrowUp, Square } from "lucide-react"
 import { useRef, useState } from "react"
 import type { KeyboardEvent } from 'react'

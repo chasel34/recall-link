@@ -1,4 +1,4 @@
-import { ScrollShadow } from "@heroui/react"
+import { ScrollShadow } from "@/components/base"
 import { Streamdown } from "streamdown"
 import { useEffect, useRef, useMemo } from "react"
 import rehypeRaw from "rehype-raw"

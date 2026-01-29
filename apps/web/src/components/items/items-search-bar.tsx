@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearch } from '@tanstack/react-router'
-import { Input, Tabs, Tab, Button } from '@heroui/react'
+import { Input, Tabs, Tab, Button } from '@/components/base'
 import { Search, Plus } from 'lucide-react'
 import { useSearchMode } from '@/hooks/use-search-mode'
 import { useTags } from '@/hooks/use-tags'
@@ -47,11 +47,11 @@ export function ItemsSearchBar({ onCreateClick }: ItemsSearchBarProps) {
             placeholder={mode === 'content' ? '搜索内容...' : '搜索标签...'}
             value={query}
             onValueChange={setQuery}
-            startContent={<Search className="h-4 w-4 text-default-400" />}
+            startContent={<Search className="h-4 w-4 text-muted-foreground" />}
             size="sm"
             isClearable
             classNames={{
-              inputWrapper: "bg-default-100",
+              inputWrapper: "bg-muted",
             }}
           />
         </div>

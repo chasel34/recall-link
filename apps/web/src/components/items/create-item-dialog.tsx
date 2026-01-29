@@ -7,7 +7,7 @@ import {
   ModalFooter,
   Input,
   Button,
-} from '@heroui/react'
+} from '@/components/base'
 import { useCreateItem } from '@/hooks/use-create-item'
 import { z } from 'zod'
 
@@ -59,7 +59,7 @@ export function CreateItemDialog({ open, onOpenChange }: CreateItemDialogProps) 
               保存网页
             </ModalHeader>
             <ModalBody>
-              <p className="text-sm text-default-500">
+              <p className="text-sm text-muted-foreground">
                 输入网页 URL，系统将自动提取内容并生成摘要和标签
               </p>
               <Input

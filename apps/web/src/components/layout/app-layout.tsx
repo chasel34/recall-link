@@ -9,10 +9,7 @@ import {
   DrawerBody, 
   Button, 
   useDisclosure,
-  Navbar,
-  NavbarContent,
-  NavbarItem
-} from "@heroui/react"
+} from "@/components/base"
 
 interface AppLayoutProps {
   children: ReactNode
@@ -34,18 +31,18 @@ export function AppLayout({ children }: AppLayoutProps) {
       </aside>
 
       <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
-        <Navbar className="md:hidden border-b" maxWidth="full" isBordered>
-          <NavbarContent justify="start">
-            <NavbarItem>
+        <nav className="md:hidden border-b border-border flex items-center h-16 px-4 bg-background">
+          <div className="flex items-center justify-start gap-2">
+            <div>
               <Button isIconOnly variant="light" onPress={onOpen} aria-label="打开菜单">
                 <Menu size={24} />
               </Button>
-            </NavbarItem>
-            <NavbarItem>
+            </div>
+            <div>
               <span className="font-bold text-lg">Recall Link</span>
-            </NavbarItem>
-          </NavbarContent>
-        </Navbar>
+            </div>
+          </div>
+        </nav>
 
         <main className="flex-1 overflow-auto">
           {children}

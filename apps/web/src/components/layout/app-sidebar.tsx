@@ -1,6 +1,6 @@
 import { Link, useRouterState } from '@tanstack/react-router'
 import { FileText, MessageSquare, Settings } from 'lucide-react'
-import { Button } from "@heroui/react"
+import { Button } from "@/components/base"
 import { ReactNode } from 'react'
 
 interface AppSidebarProps {
@@ -21,7 +21,7 @@ export function AppSidebar({ onItemClick, children }: AppSidebarProps) {
 
   return (
     <div className="h-full flex flex-col bg-background">
-      <div className="p-6 border-b dark:border-default-100">
+      <div className="p-6 border-b border-border">
         <h1 className="text-xl font-bold">Recall Link</h1>
       </div>
       <div className="p-4 space-y-2">
@@ -54,7 +54,7 @@ export function AppSidebar({ onItemClick, children }: AppSidebarProps) {
       </div>
       
       {children && (
-        <div className="flex-1 border-t border-default-100 overflow-hidden flex flex-col">
+        <div className="flex-1 border-t border-border overflow-hidden flex flex-col">
           {children}
         </div>
       )}

@@ -1,6 +1,6 @@
 import { Link, useRouterState } from '@tanstack/react-router'
 import { FileText, MessageSquare, Settings, Command } from 'lucide-react'
-import { Button, Tooltip } from "@heroui/react"
+import { Button, Tooltip } from "@/components/base"
 
 interface PrimaryNavRailProps {
   className?: string
@@ -18,7 +18,7 @@ export function PrimaryNavRail({ className }: PrimaryNavRailProps) {
   ]
 
   return (
-    <div className={`flex flex-col items-center py-4 bg-background border-r dark:border-default-100 ${className}`}>
+    <div className={`flex flex-col items-center py-4 bg-background border-r border-border ${className}`}>
       <div className="mb-6">
         <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
           <Command size={20} />

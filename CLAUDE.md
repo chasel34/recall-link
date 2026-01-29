@@ -11,7 +11,7 @@ See per-area guides:
 
 - **Monorepo:** pnpm + Turborepo (`pnpm-workspace.yaml`, `turbo.json`)
 - **Backend:** `apps/api` (Hono + SQLite/better-sqlite3 + Zod) + optional worker loop (`WORKER_ENABLED=1`)
-- **Frontend:** `apps/web` (Vite + React + TanStack Router/Query + HeroUI + Tailwind)
+- **Frontend:** `apps/web` (Vite + React + TanStack Router/Query + Base UI + Tailwind)
 - **Testing:** Vitest (primarily in `apps/api`)
 
 ## Structure
@@ -38,7 +38,7 @@ Note: `pnpm-workspace.yaml` includes `packages/*`, but `packages/` is currently 
 | Save item flow | `apps/api/src/features/items/items.route.ts`, `apps/api/src/features/items/items.db.ts` | URL normalization + duplicate check + job enqueue |
 | DB schema + migrations | `apps/api/src/db/schema.sql`, `apps/api/src/db/client.ts` | `applySchema()` runs in phases + backfills FTS |
 | Worker + processors | `apps/api/src/queue/worker.ts`, `apps/api/src/queue/processors/*` | Job polling + `fetch` / `ai_process` |
-| Web app entry | `apps/web/src/main.tsx` | Router + Query + HeroUI providers |
+| Web app entry | `apps/web/src/main.tsx` | Router + Query + Base UI providers |
 | Web routes | `apps/web/src/routes/*` | TanStack Router file routes (`createFileRoute`) |
 | Web data hooks | `apps/web/src/hooks/*` | React Query + (some) Zustand |
 | Web API client | `apps/web/src/lib/api-client.ts` | HTTP calls + mirrored response types |
@@ -71,4 +71,3 @@ pnpm build
 ## Notes / Gotchas
 
 - `apps/api/data/*` and `apps/*/.env` are gitignored; don't rely on checked-in DB state.
-- `.npmrc` includes `public-hoist-pattern[]=*@heroui/*` (HeroUI ecosystem wants hoisted deps).
