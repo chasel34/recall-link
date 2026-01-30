@@ -19,9 +19,9 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure()
 
   return (
-    <div className="flex h-screen w-full bg-background">
+      <div className="flex h-screen w-full bg-background">
       {/* Desktop Primary Rail */}
-      <aside className="hidden md:block w-20 h-full shrink-0 z-20">
+      <aside className="hidden md:block w-16 h-full shrink-0 z-20">
         <PrimaryNavRail className="h-full" />
       </aside>
 

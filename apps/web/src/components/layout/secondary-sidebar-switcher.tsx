@@ -9,11 +9,18 @@ interface SecondarySidebarSwitcherProps {
 
 export function SecondarySidebarSwitcher({ className }: SecondarySidebarSwitcherProps) {
   const router = useRouterState()
-  const params = useParams({ strict: false })
+  const params = useParams({ strict: false }) as Record<string, unknown>
   const pathname = router.location.pathname
   
-  // Need to cast params to access dynamic properties since strict is false
-  const chatId = (params as any).id as string | undefined
+  const chatId = typeof params.id === 'string' ? params.id : undefined
+
+  const isItemsList = pathname === '/items' || pathname === '/items/'
+  const isItemsTags = pathname.startsWith('/items/tags/')
+  const isItemsDetail =
+    pathname.startsWith('/items/') && !isItemsList && !isItemsTags && /^\/items\/[^/]+$/.test(pathname)
+
+  // Reading view should be distraction-free (no secondary sidebar)
+  if (isItemsDetail) return null
 
   if (pathname.startsWith('/items')) {
     return (
