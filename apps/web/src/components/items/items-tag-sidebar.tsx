@@ -18,6 +18,10 @@ const TAG_SIDEBAR_SKELETON_KEYS = [
 export function ItemsTagSidebar() {
   const search = useSearch({ strict: false })
   const currentTag = typeof (search as { tag?: unknown }).tag === 'string' ? (search as { tag: string }).tag : undefined
+  const currentCategory =
+    typeof (search as { category?: unknown }).category === 'string'
+      ? ((search as { category: string }).category as 'recent' | string)
+      : undefined
   const { mode } = useSearchMode()
   const { data: tags, isLoading } = useTags()
   const query = typeof search.q === 'string' ? search.q : ''
@@ -39,6 +43,10 @@ export function ItemsTagSidebar() {
       ? tags?.filter((tag) => tag.name.toLowerCase().includes(query.toLowerCase()))
       : tags
 
+  const isRecent = currentCategory === 'recent'
+  const isPending = currentCategory === 'pending'
+  const isAll = !currentTag && !isRecent && !isPending
+
   return (
     <div className="h-full flex flex-col min-h-0">
       <div className="flex-1 min-h-0 overflow-y-auto px-6 py-7">
@@ -50,9 +58,9 @@ export function ItemsTagSidebar() {
           <div className="space-y-1">
             <Link
               to="/items"
-              search={(prev) => ({ ...prev, tag: undefined })}
+              search={(prev) => ({ ...prev, tag: undefined, category: undefined })}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] transition-all ${
-                !currentTag
+                isAll
                   ? 'bg-primary/10 shadow-[var(--shadow-card)] ring-1 ring-primary/20 text-foreground font-semibold'
                   : 'text-muted-foreground hover:text-foreground hover:bg-card/60'
               }`}
@@ -61,17 +69,31 @@ export function ItemsTagSidebar() {
               所有收藏
             </Link>
 
-            <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] text-muted-foreground/60 bg-transparent cursor-not-allowed select-none">
+            <Link
+              to="/items"
+              search={(prev) => ({ ...prev, tag: undefined, category: 'recent' })}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] transition-all ${
+                isRecent
+                  ? 'bg-primary/10 shadow-[var(--shadow-card)] ring-1 ring-primary/20 text-foreground font-semibold'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-card/60'
+              }`}
+            >
               <Clock className="w-4 h-4" />
               最近添加
-              <span className="ml-auto text-[10px] font-semibold text-muted-foreground/50">即将上线</span>
-            </div>
+            </Link>
 
-            <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] text-muted-foreground/60 bg-transparent cursor-not-allowed select-none">
+            <Link
+              to="/items"
+              search={(prev) => ({ ...prev, tag: undefined, category: 'pending' })}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] transition-all ${
+                isPending
+                  ? 'bg-primary/10 shadow-[var(--shadow-card)] ring-1 ring-primary/20 text-foreground font-semibold'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-card/60'
+              }`}
+            >
               <Inbox className="w-4 h-4" />
               待处理
-              <span className="ml-auto text-[10px] font-semibold text-muted-foreground/50">即将上线</span>
-            </div>
+            </Link>
           </div>
         </div>
 

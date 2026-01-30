@@ -19,6 +19,12 @@ export interface Item {
 export interface ListItemsParams {
   tags?: string
   q?: string
+  status?: 'pending' | 'completed' | 'failed'
+  domain?: string
+  created_after?: string
+  created_before?: string
+  sort_by?: 'created_at' | 'updated_at' | 'domain'
+  sort_order?: 'asc' | 'desc'
   page?: number
   limit?: number
   offset?: number
@@ -110,6 +116,12 @@ class ApiClient {
 
     if (params.tags) searchParams.set('tags', params.tags)
     if (params.q) searchParams.set('q', params.q)
+    if (params.status) searchParams.set('status', params.status)
+    if (params.domain) searchParams.set('domain', params.domain)
+    if (params.created_after) searchParams.set('created_after', params.created_after)
+    if (params.created_before) searchParams.set('created_before', params.created_before)
+    if (params.sort_by) searchParams.set('sort_by', params.sort_by)
+    if (params.sort_order) searchParams.set('sort_order', params.sort_order)
     if (params.limit) searchParams.set('limit', params.limit.toString())
     if (params.offset) searchParams.set('offset', params.offset.toString())
 

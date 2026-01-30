@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useItems } from '@/hooks/use-items'
 import { ItemsGrid } from '@/components/items/items-grid'
 import { ItemsList } from '@/components/items/items-list'
@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils'
 const itemsSearchSchema = z.object({
   q: z.string().optional(),
   tag: z.string().optional(),
+  category: z.enum(['recent', 'pending']).optional(),
   page: z.number().int().positive().optional(),
 })
 
@@ -28,8 +29,28 @@ function ItemsPage() {
   const { mode: searchMode } = useSearchMode()
   const { mode: viewMode, setMode: setViewMode } = useItemsViewMode()
   const tag = typeof search.tag === 'string' ? search.tag : undefined
+  const category = search.category
   const query = searchMode === 'content' ? search.q : undefined
-  const itemsQuery = useItems({ q: query, tags: tag })
+
+  const pageTitle = category === 'recent' ? '最近添加' : category === 'pending' ? '待处理' : '所有收藏'
+  const pageDescription =
+    category === 'recent'
+      ? '展示最近 7 天添加的收藏。'
+      : category === 'pending'
+        ? '展示尚未处理完成的收藏。'
+        : '沉淀思想，记录每一个灵感瞬间。'
+
+  const createdAfter = useMemo(() => {
+    if (category !== 'recent') return undefined
+    const d = new Date()
+    d.setDate(d.getDate() - 7)
+    d.setHours(0, 0, 0, 0)
+    return d.toISOString()
+  }, [category])
+
+  const status = category === 'pending' ? 'pending' : undefined
+
+  const itemsQuery = useItems({ q: query, tags: tag, created_after: createdAfter, status })
   const [showCreateDialog, setShowCreateDialog] = useState(false)
 
   const items = itemsQuery.data?.items ?? []
@@ -47,13 +68,13 @@ function ItemsPage() {
           <div className="mb-10 flex items-end justify-between gap-6">
             <div>
               <h1 className="font-serif text-3xl font-semibold tracking-tight text-foreground/90">
-                所有收藏
+                {pageTitle}
                 <span className="ml-3 text-sm font-sans font-medium text-muted-foreground">
                   {viewMode === 'list' ? '高密度视图' : '网格视图'}
                 </span>
               </h1>
               <p className="mt-2 text-sm text-muted-foreground">
-                沉淀思想，记录每一个灵感瞬间。
+                {pageDescription}
               </p>
             </div>
 
