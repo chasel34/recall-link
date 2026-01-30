@@ -104,7 +104,7 @@ export function ItemDetail({ item }: ItemDetailProps) {
         </ModalContent>
       </Modal>
 
-      <div className="mx-auto max-w-5xl px-6 md:px-12 lg:px-20 py-16 md:py-20">
+      <div className="mx-auto max-w-5xl xl:max-w-6xl 2xl:max-w-7xl px-6 md:px-12 lg:px-20 py-16 md:py-20">
         <header className="mb-12">
           <div className="flex items-center gap-3 mb-6">
             <span className="px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-[0.22em]">

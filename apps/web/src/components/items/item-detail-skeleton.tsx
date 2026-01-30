@@ -16,7 +16,7 @@ export function ItemDetailSkeleton() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-5xl px-6 md:px-12 lg:px-20 py-16 md:py-20">
+      <div className="mx-auto max-w-5xl xl:max-w-6xl 2xl:max-w-7xl px-6 md:px-12 lg:px-20 py-16 md:py-20">
         <div className="mb-12">
           <div className="flex items-center gap-3 mb-6">
             <Skeleton className="rounded-lg w-28 h-6" />
