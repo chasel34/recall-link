@@ -2,7 +2,18 @@ import { Link, useSearch } from '@tanstack/react-router'
 import { useTags } from '@/hooks/use-tags'
 import { Chip, Skeleton } from '@/components/base'
 import { useSearchMode } from '@/hooks/use-search-mode'
-import { Clock, Inbox } from 'lucide-react'
+import { Clock, Inbox, LayoutGrid } from 'lucide-react'
+
+const TAG_SIDEBAR_SKELETON_KEYS = [
+  'tag-skeleton-a',
+  'tag-skeleton-b',
+  'tag-skeleton-c',
+  'tag-skeleton-d',
+  'tag-skeleton-e',
+  'tag-skeleton-f',
+  'tag-skeleton-g',
+  'tag-skeleton-h',
+] as const
 
 export function ItemsTagSidebar() {
   const search = useSearch({ strict: false })
@@ -14,8 +25,8 @@ export function ItemsTagSidebar() {
   if (isLoading) {
     return (
       <div className="h-full flex flex-col p-6 space-y-2">
-        {[...Array(8)].map((_, i) => (
-          <Skeleton key={i} className="rounded-md">
+        {TAG_SIDEBAR_SKELETON_KEYS.map((key) => (
+          <Skeleton key={key} className="rounded-md">
             <div className="h-8 w-full bg-muted/80" />
           </Skeleton>
         ))}
@@ -40,12 +51,13 @@ export function ItemsTagSidebar() {
             <Link
               to="/items"
               search={(prev) => ({ ...prev, tag: undefined })}
-              className={`block px-4 py-2.5 rounded-xl text-[13px] transition-all ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] transition-all ${
                 !currentTag
                   ? 'bg-primary/10 shadow-[var(--shadow-card)] ring-1 ring-primary/20 text-foreground font-semibold'
                   : 'text-muted-foreground hover:text-foreground hover:bg-card/60'
               }`}
             >
+              <LayoutGrid className="w-4 h-4" />
               所有收藏
             </Link>
 
