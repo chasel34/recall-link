@@ -3,6 +3,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { Card, CardBody, CardHeader, Button, Input } from '@/components/base'
 import { apiClient, ApiError } from '@/lib/api-client'
 import { queryClient } from '@/lib/query-client'
+import { useMe } from '@/hooks/use-me'
 
 export const Route = createFileRoute('/login')({
   component: LoginPage,
@@ -10,10 +11,17 @@ export const Route = createFileRoute('/login')({
 
 function LoginPage() {
   const navigate = useNavigate()
+  const { user } = useMe({ enabled: true })
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
   const [isLoading, setIsLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    if (user) {
+      navigate({ to: '/items', replace: true })
+    }
+  }, [user, navigate])
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
