@@ -1,11 +1,9 @@
 import type { Database } from 'better-sqlite3'
-import { Readability } from '@mozilla/readability'
-import { JSDOM } from 'jsdom'
-import type { Job } from '../../features/jobs/jobs.db.js'
+import type { Job } from '@recall-link/jobs'
+import { handleFetch } from '@recall-link/jobs-handlers'
 import { updateItemContent } from '../../features/jobs/jobs.db.js'
 import { getItemById } from '../../features/items/items.db.js'
 import { generateId } from '../../lib/utils.js'
-import { sanitizeReadabilityHtmlInWindow } from '../../lib/sanitize.js'
 import { publishItemUpdated } from '../../features/events/events.bus.js'
 import { replaceItemFts } from '../../features/items/items.fts.js'
 
@@ -21,36 +19,12 @@ export async function processFetchJob(db: Database, job: Job): Promise<void> {
 
   console.log(`[fetch] Processing ${item.url}`)
 
-  const response = await fetch(item.url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (compatible; RecallBot/1.0)',
-    },
-    redirect: 'follow',
-    signal: AbortSignal.timeout(30000),
-  })
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`)
-  }
-
-  const html = await response.text()
-
-  const dom = new JSDOM(html, { url: item.url })
-  const reader = new Readability(dom.window.document)
-  const article = reader.parse()
-
-  if (!article) {
-    throw new Error('Failed to extract article content')
-  }
-
-  const cleanHtml = article.content
-    ? sanitizeReadabilityHtmlInWindow(article.content, item.url, dom.window as unknown as Window)
-    : undefined
+  const { title, clean_text, clean_html } = await handleFetch({ url: item.url })
 
   updateItemContent(db, item.id, {
-    title: article.title || (item.title ?? undefined),
-    clean_text: article.textContent ?? undefined,
-    clean_html: cleanHtml,
+    title: title || (item.title ?? undefined),
+    clean_text,
+    clean_html,
     status: 'completed',
   })
 

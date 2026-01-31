@@ -1,10 +1,11 @@
 import type { Database } from 'better-sqlite3'
-import type { Job } from '../../features/jobs/jobs.db.js'
+import type { Job } from '@recall-link/jobs'
 import { getItemById } from '../../features/items/items.db.js'
-import { generateTagsAndSummary, mergeTagsWithExisting } from '../../services/ai.service.js'
+import { handleAiProcess } from '@recall-link/jobs-handlers'
 import { getAllTagNames, setItemTags } from '../../features/tags/tags.db.js'
 import { publishItemUpdated } from '../../features/events/events.bus.js'
 import { replaceItemFts } from '../../features/items/items.fts.js'
+import { getAIConfig } from '../../config/ai.config.js'
 
 export async function processAIJob(db: Database, job: Job): Promise<void> {
   const item = getItemById(db, job.item_id)
@@ -25,9 +26,13 @@ export async function processAIJob(db: Database, job: Job): Promise<void> {
 
   console.log(`[ai] Processing ${item.url}`)
 
-  const { tags: newTags, summary } = await generateTagsAndSummary(item.clean_text)
+  const config = getAIConfig()
   const existingTags = getAllTagNames(db, userId)
-  const mergedTags = await mergeTagsWithExisting(newTags, existingTags)
+  const { summary, tags: mergedTags } = await handleAiProcess({
+    cleanText: item.clean_text,
+    existingTags,
+    config,
+  })
 
   db.transaction(() => {
     const now = new Date().toISOString()

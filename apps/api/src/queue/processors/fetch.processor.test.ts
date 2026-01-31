@@ -2,9 +2,12 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import Database from 'better-sqlite3'
 import { applySchema, defaultSchemaPath } from '../../db/client.js'
 import { processFetchJob } from './fetch.processor.js'
-import type { Job } from '../../features/jobs/jobs.db.js'
+import type { Job } from '@recall-link/jobs'
+import { handleFetch } from '@recall-link/jobs-handlers'
 
-global.fetch = vi.fn()
+vi.mock('@recall-link/jobs-handlers', () => ({
+  handleFetch: vi.fn(),
+}))
 
 describe('processFetchJob', () => {
   let db: Database.Database
@@ -30,28 +33,20 @@ describe('processFetchJob', () => {
   })
 
   it('should fetch and extract content successfully', async () => {
-    const mockHtml = `
-      <!DOCTYPE html>
-      <html>
-        <head><title>Test Article</title></head>
-        <body>
-          <article>
-            <h1>Test Article</h1>
-            <p>This is the main content of the article.</p>
-            <p>It has multiple paragraphs.</p>
-            <p><a href="/rel">Relative link</a></p>
-            <script>alert('x')</script>
-            <img src="/x.png" />
-          </article>
-        </body>
-      </html>
+    const cleanHtml = `
+      <article>
+        <h1>Test Article</h1>
+        <p>This is the main content of the article.</p>
+        <p>It has multiple paragraphs.</p>
+        <p><a href="https://example.com/rel" rel="noopener noreferrer" target="_blank">Relative link</a></p>
+      </article>
     `
 
-    vi.mocked(fetch).mockResolvedValue({
-      ok: true,
-      status: 200,
-      text: async () => mockHtml,
-    } as Response)
+    vi.mocked(handleFetch).mockResolvedValue({
+      title: 'Test Article',
+      clean_text: 'This is the main content of the article. It has multiple paragraphs.',
+      clean_html: cleanHtml,
+    })
 
     const job: Job = {
       id: 'job_test',
@@ -86,10 +81,7 @@ describe('processFetchJob', () => {
   })
 
   it('should handle HTTP errors', async () => {
-    vi.mocked(fetch).mockResolvedValue({
-      ok: false,
-      status: 404,
-    } as Response)
+    vi.mocked(handleFetch).mockRejectedValue(new Error('HTTP 404'))
 
     const job: Job = {
       id: 'job_test',
@@ -112,7 +104,7 @@ describe('processFetchJob', () => {
   })
 
   it('should handle network errors', async () => {
-    vi.mocked(fetch).mockRejectedValue(new Error('Network failure'))
+    vi.mocked(handleFetch).mockRejectedValue(new Error('Network failure'))
 
     const job: Job = {
       id: 'job_test',

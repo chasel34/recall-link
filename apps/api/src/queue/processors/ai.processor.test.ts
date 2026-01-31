@@ -2,11 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import Database from 'better-sqlite3'
 import { applySchema, defaultSchemaPath } from '../../db/client.js'
 import { processAIJob, shouldRetryAIError } from './ai.processor.js'
-import type { Job } from '../../features/jobs/jobs.db.js'
+import type { Job } from '@recall-link/jobs'
 
-vi.mock('../../services/ai.service.js', () => ({
-  generateTagsAndSummary: vi.fn(),
-  mergeTagsWithExisting: vi.fn(),
+vi.mock('@recall-link/jobs-handlers', () => ({
+  handleAiProcess: vi.fn(),
 }))
 
 describe('ai.processor', () => {
@@ -14,6 +13,9 @@ describe('ai.processor', () => {
   const userId = 'user_test'
 
   beforeEach(() => {
+    process.env.GEMINI_API_KEY = 'test-key'
+    process.env.GEMINI_BASE_URL = 'http://localhost'
+    process.env.GEMINI_MODEL = 'test-model'
     db = new Database(':memory:')
     applySchema(db, defaultSchemaPath())
     vi.clearAllMocks()
@@ -39,16 +41,12 @@ describe('ai.processor', () => {
 
   describe('processAIJob', () => {
     it('should process AI job and update item', async () => {
-      const { generateTagsAndSummary, mergeTagsWithExisting } = await import(
-        '../../services/ai.service.js'
-      )
+      const { handleAiProcess } = await import('@recall-link/jobs-handlers')
 
-      vi.mocked(generateTagsAndSummary).mockResolvedValue({
-        tags: ['react', 'typescript', '前端'],
+      vi.mocked(handleAiProcess).mockResolvedValue({
+        tags: ['React', 'TypeScript', '前端'],
         summary: '这是一篇关于 React 和 TypeScript 的文章。',
       })
-
-      vi.mocked(mergeTagsWithExisting).mockResolvedValue(['React', 'TypeScript', '前端'])
 
       const job: Job = {
         id: 'job_test',
