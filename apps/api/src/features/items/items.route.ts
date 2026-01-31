@@ -190,7 +190,7 @@ itemsApp.delete('/:id', (c) => {
       }, 404)
     }
 
-    const result = deleteItem(db, id)
+    const result = deleteItem(db, userId, id)
 
     return c.json({
       message: 'Item deleted',

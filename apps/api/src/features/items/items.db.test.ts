@@ -269,7 +269,7 @@ describe('items.db', () => {
 
     it('should update tags with user source', () => {
       const result = updateItem(db, userId, 'item_test', { tags: ['react', 'typescript'] })
-      expect(result.changes).toBe(0) // No SQL fields updated, only item_tags table
+      expect(result.changes).toBe(1)
 
       // Verify tags were set in item_tags table
       const tags = getItemTags(db, 'item_test')
@@ -359,7 +359,7 @@ describe('items.db', () => {
     })
 
     it('should delete item and associated jobs in transaction', () => {
-      const result = deleteItem(db, 'item_test')
+      const result = deleteItem(db, userId, 'item_test')
       expect(result.deletedJobs).toBe(1)
       expect(result.deletedItem).toBe(1)
 
@@ -371,9 +371,18 @@ describe('items.db', () => {
     })
 
     it('should return 0 if item does not exist', () => {
-      const result = deleteItem(db, 'item_nonexistent')
+      const result = deleteItem(db, userId, 'item_nonexistent')
       expect(result.deletedItem).toBe(0)
       expect(result.deletedJobs).toBe(0)
+    })
+
+    it('should not delete item belonging to another user', () => {
+      const result = deleteItem(db, 'other_user', 'item_test')
+      expect(result.deletedItem).toBe(0)
+      expect(result.deletedJobs).toBe(0)
+
+      const item = getItemById(db, 'item_test')
+      expect(item).toBeTruthy()
     })
   })
 })

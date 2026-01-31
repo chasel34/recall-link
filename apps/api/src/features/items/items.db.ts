@@ -275,6 +275,11 @@ export type UpdateItemData = {
  */
 export function updateItem(db: Database, userId: string, id: string, updates: UpdateItemData): { changes: number } {
   return db.transaction(() => {
+    const item = getItemByIdForUser(db, userId, id)
+    if (!item) {
+      return { changes: 0 }
+    }
+
     const sets: string[] = []
     const params: Array<string | number> = []
 
@@ -293,31 +298,43 @@ export function updateItem(db: Database, userId: string, id: string, updates: Up
       setItemTags(db, userId, id, updates.tags)
     }
 
-    if (sets.length === 0) {
+    if (sets.length === 0 && updates.tags === undefined) {
       return { changes: 0 }
     }
 
-    sets.push('updated_at = ?')
-    params.push(new Date().toISOString())
-    params.push(id)
+    let changes = 0
+    if (sets.length > 0) {
+      sets.push('updated_at = ?')
+      params.push(new Date().toISOString())
+      params.push(id)
+      params.push(userId)
 
-    const sql = `UPDATE items SET ${sets.join(', ')} WHERE id = ?`
-    const result = db.prepare(sql).run(...params)
+      const sql = `UPDATE items SET ${sets.join(', ')} WHERE id = ? AND user_id = ?`
+      const result = db.prepare(sql).run(...params)
+      changes = result.changes
+    } else if (updates.tags !== undefined) {
+      changes = 1
+    }
 
     // Keep FTS in sync for search/chat RAG.
     if (updates.summary !== undefined || updates.tags !== undefined) {
       replaceItemFts(db, id)
     }
 
-    return { changes: result.changes }
+    return { changes }
   })()
 }
 
 /**
  * Delete item and associated jobs in transaction
  */
-export function deleteItem(db: Database, id: string): { deletedItem: number; deletedJobs: number } {
+export function deleteItem(db: Database, userId: string, id: string): { deletedItem: number; deletedJobs: number } {
   return db.transaction(() => {
+    const item = getItemByIdForUser(db, userId, id)
+    if (!item) {
+      return { deletedItem: 0, deletedJobs: 0 }
+    }
+
     const affectedTagIds = db
       .prepare('SELECT tag_id FROM item_tags WHERE item_id = ?')
       .all(id) as { tag_id: string }[]
@@ -326,7 +343,7 @@ export function deleteItem(db: Database, id: string): { deletedItem: number; del
     db.prepare('DELETE FROM item_tags WHERE item_id = ?').run(id)
 
     const jobResult = db.prepare('DELETE FROM jobs WHERE item_id = ?').run(id)
-    const itemResult = db.prepare('DELETE FROM items WHERE id = ?').run(id)
+    const itemResult = db.prepare('DELETE FROM items WHERE id = ? AND user_id = ?').run(id, userId)
 
     deleteItemFts(db, id)
 
