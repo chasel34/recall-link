@@ -1,0 +1,26 @@
+{
+  "name": "@recall-link/content",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@mozilla/readability": "^0.6.0",
+    "jsdom": "^27.4.0"
+  },
+  "devDependencies": {
+    "@types/jsdom": "^27.0.0"
+  },
+  "files": [
+    "dist"
+  ]
+}
