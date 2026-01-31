@@ -5,14 +5,10 @@ import { applySchema, defaultSchemaPath } from '../db/client.js'
 import { setDb, closeDb } from '../db/context.js'
 import { registerTestUser } from './test-auth.js'
 
-vi.mock('../services/ai.service.js', () => ({
-  generateTagsAndSummary: vi.fn().mockResolvedValue({
+vi.mock('@recall-link/jobs-handlers', () => ({
+  handleAiProcess: vi.fn().mockResolvedValue({
     tags: ['React', 'TypeScript', '前端'],
     summary: '这是一篇关于 React 和 TypeScript 的教程文章。',
-  }),
-  mergeTagsWithExisting: vi.fn().mockImplementation((newTags, existingTags) => {
-    if (existingTags.length === 0) return Promise.resolve(newTags)
-    return Promise.resolve(['React', 'TypeScript', '前端'])
   }),
 }))
 

@@ -4,17 +4,19 @@ const acquireJobMock = vi.fn()
 const completeJobMock = vi.fn()
 const failJobMock = vi.fn()
 const retryJobMock = vi.fn()
-const failItemMock = vi.fn()
 const processFetchJobMock = vi.fn()
 const getDbMock = vi.fn()
 
-vi.mock('../features/jobs/jobs.db.js', () => ({
-  acquireJob: acquireJobMock,
-  completeJob: completeJobMock,
-  failJob: failJobMock,
-  retryJob: retryJobMock,
-  failItem: failItemMock,
-}))
+vi.mock('@recall-link/jobs', async () => {
+  const actual = await vi.importActual<typeof import('@recall-link/jobs')>('@recall-link/jobs')
+  return {
+    ...actual,
+    acquireJob: acquireJobMock,
+    completeJob: completeJobMock,
+    failJob: failJobMock,
+    retryJob: retryJobMock,
+  }
+})
 
 vi.mock('../queue/processors/fetch.processor.js', () => ({
   processFetchJob: processFetchJobMock,
@@ -41,16 +43,16 @@ describe('worker', () => {
     expect(() => startWorker({ enabled: false })).not.toThrow()
   })
 
-  it('polls for jobs when enabled', async () => {
+  it('polls for jobs when enabled', () => {
     vi.useFakeTimers()
     acquireJobMock.mockReturnValue(null)
 
     startWorker({ enabled: true, pollInterval: 1000 })
 
-    await vi.runAllTicks()
+    void vi.runAllTicks()
     expect(acquireJobMock).toHaveBeenCalledTimes(1)
 
-    await vi.advanceTimersByTimeAsync(1000)
+    vi.advanceTimersByTime(1000)
     expect(acquireJobMock).toHaveBeenCalledTimes(2)
   })
 })

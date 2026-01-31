@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { sanitizeReadabilityHtml } from './sanitize.js'
+import { sanitizeReadabilityHtml } from '@recall-link/content'
 
 describe('sanitizeReadabilityHtml', () => {
   it('drops scripts/images, strips event handlers/styles, and normalizes links', () => {
