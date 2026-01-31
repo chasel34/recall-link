@@ -39,6 +39,8 @@ export function applySchema(db: Db, schemaFilePath: string) {
   migrateItemsCleanHtmlColumn(db)
   migrateItemsUserIdColumn(db)
   migrateTagsUserIdColumn(db)
+  migrateItemsUrlNormalizedUnique(db)
+  migrateTagsNameUnique(db)
 
   for (const stmt of otherStatements) {
     db.exec(stmt)
@@ -140,6 +142,125 @@ function migrateTagsUserIdColumn(db: Db): void {
 
   console.log('[db] Migrating tags table: adding user_id column')
   db.exec(`ALTER TABLE tags ADD COLUMN user_id TEXT`)
+}
+
+function migrateItemsUrlNormalizedUnique(db: Db): void {
+  if (!tableExists(db, 'items')) return
+
+  // New schema: UNIQUE(user_id, url_normalized). Older on-disk DBs used UNIQUE(url_normalized).
+  const indexes = db.prepare(`PRAGMA index_list('items')`).all() as Array<{
+    name: string
+    unique: 0 | 1
+  }>
+
+  const hasLegacyUniqueUrlNormalized = indexes.some((idx) => {
+    if (idx.unique !== 1) return false
+    const columns = db.prepare(`PRAGMA index_info(${JSON.stringify(idx.name)})`).all() as Array<{ name: string }>
+    return columns.length === 1 && columns[0]?.name === 'url_normalized'
+  })
+
+  if (!hasLegacyUniqueUrlNormalized) return
+
+  console.log('[db] Migrating items table: UNIQUE(url_normalized) -> UNIQUE(user_id, url_normalized)')
+
+  withForeignKeysOff(db, () => {
+    db.transaction(() => {
+      db.exec(`DROP TABLE IF EXISTS items_new`)
+      db.exec(`
+        CREATE TABLE items_new (
+          id TEXT PRIMARY KEY,
+          user_id TEXT,
+          url TEXT NOT NULL,
+          url_normalized TEXT NOT NULL,
+          title TEXT,
+          domain TEXT,
+          status TEXT NOT NULL,
+          error_code TEXT,
+          error_message TEXT,
+          clean_text TEXT,
+          clean_html TEXT,
+          summary TEXT,
+          summary_source TEXT,
+          note TEXT,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          processed_at TEXT
+        )
+      `)
+
+      db.exec(`
+        INSERT INTO items_new (
+          id, user_id, url, url_normalized, title, domain, status, error_code, error_message,
+          clean_text, clean_html, summary, summary_source, note, created_at, updated_at, processed_at
+        )
+        SELECT
+          id, user_id, url, url_normalized, title, domain, status, error_code, error_message,
+          clean_text, clean_html, summary, summary_source, note, created_at, updated_at, processed_at
+        FROM items
+      `)
+
+      db.exec(`DROP TABLE items`)
+      db.exec(`ALTER TABLE items_new RENAME TO items`)
+    })()
+  })
+}
+
+function migrateTagsNameUnique(db: Db): void {
+  if (!tableExists(db, 'tags')) return
+
+  // New schema: UNIQUE(user_id, name). Older on-disk DBs used UNIQUE(name).
+  const indexes = db.prepare(`PRAGMA index_list('tags')`).all() as Array<{
+    name: string
+    unique: 0 | 1
+  }>
+
+  const hasLegacyUniqueName = indexes.some((idx) => {
+    if (idx.unique !== 1) return false
+    const columns = db.prepare(`PRAGMA index_info(${JSON.stringify(idx.name)})`).all() as Array<{ name: string }>
+    return columns.length === 1 && columns[0]?.name === 'name'
+  })
+
+  if (!hasLegacyUniqueName) return
+
+  console.log('[db] Migrating tags table: UNIQUE(name) -> UNIQUE(user_id, name)')
+
+  withForeignKeysOff(db, () => {
+    db.transaction(() => {
+      db.exec(`DROP TABLE IF EXISTS tags_new`)
+      db.exec(`
+        CREATE TABLE tags_new (
+          id TEXT PRIMARY KEY,
+          user_id TEXT,
+          name TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          item_count INTEGER DEFAULT 0
+        )
+      `)
+
+      db.exec(`
+        INSERT INTO tags_new (id, user_id, name, created_at, item_count)
+        SELECT id, user_id, name, created_at, item_count FROM tags
+      `)
+
+      db.exec(`DROP TABLE tags`)
+      db.exec(`ALTER TABLE tags_new RENAME TO tags`)
+    })()
+  })
+}
+
+function withForeignKeysOff(db: Db, fn: () => void): void {
+  const fk = db.pragma('foreign_keys', { simple: true }) as number
+  if (fk === 1) {
+    db.pragma('foreign_keys = OFF')
+  }
+
+  try {
+    fn()
+  } finally {
+    if (fk === 1) {
+      db.pragma('foreign_keys = ON')
+    }
+  }
 }
 
 function tableExists(db: Db, tableName: string): boolean {

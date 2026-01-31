@@ -3,14 +3,21 @@ import { app } from '../app.js'
 import Database from 'better-sqlite3'
 import { applySchema, defaultSchemaPath } from '../db/client.js'
 import { setDb, closeDb } from '../db/context.js'
+import { registerTestUser } from './test-auth.js'
 
 describe('POST /api/items', () => {
   let db: Database.Database
+  let cookie: string
+  let userId: string
 
-  beforeEach(() => {
+  beforeEach(async () => {
     db = new Database(':memory:')
     applySchema(db, defaultSchemaPath())
     setDb(db)
+
+    const auth = await registerTestUser(app)
+    cookie = auth.cookie
+    userId = auth.user.id
   })
 
   afterEach(() => {
@@ -20,7 +27,7 @@ describe('POST /api/items', () => {
   it('should create item with valid URL', async () => {
     const res = await app.request('/api/items', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
       body: JSON.stringify({ url: 'https://example.com/article' }),
     })
 
@@ -38,7 +45,7 @@ describe('POST /api/items', () => {
   it('should reject invalid URL', async () => {
     const res = await app.request('/api/items', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
       body: JSON.stringify({ url: 'not-a-url' }),
     })
 
@@ -50,7 +57,7 @@ describe('POST /api/items', () => {
 
     const res1 = await app.request('/api/items', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
       body: JSON.stringify({ url }),
     })
     expect(res1.status).toBe(201)
@@ -58,7 +65,7 @@ describe('POST /api/items', () => {
 
     const res2 = await app.request('/api/items', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
       body: JSON.stringify({ url }),
     })
     expect(res2.status).toBe(409)
@@ -73,14 +80,14 @@ describe('POST /api/items', () => {
   it('should normalize URLs before duplicate check', async () => {
     const res1 = await app.request('/api/items', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
       body: JSON.stringify({ url: 'https://example.com/article?utm_source=twitter' }),
     })
     expect(res1.status).toBe(201)
 
     const res2 = await app.request('/api/items', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
       body: JSON.stringify({ url: 'https://example.com/article' }),
     })
     expect(res2.status).toBe(409)
@@ -89,7 +96,7 @@ describe('POST /api/items', () => {
   it('should extract domain correctly', async () => {
     const res = await app.request('/api/items', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
       body: JSON.stringify({ url: 'https://blog.example.com/post/123' }),
     })
 
@@ -101,11 +108,17 @@ describe('POST /api/items', () => {
 
 describe('GET /api/items', () => {
   let db: Database.Database
+  let cookie: string
+  let userId: string
 
-  beforeEach(() => {
+  beforeEach(async () => {
     db = new Database(':memory:')
     applySchema(db, defaultSchemaPath())
     setDb(db)
+
+    const auth = await registerTestUser(app)
+    cookie = auth.cookie
+    userId = auth.user.id
   })
 
   afterEach(() => {
@@ -113,7 +126,7 @@ describe('GET /api/items', () => {
   })
 
   it('should return empty list by default', async () => {
-    const res = await app.request('/api/items')
+    const res = await app.request('/api/items', { headers: { Cookie: cookie } })
 
     expect(res.status).toBe(200)
     const data = await res.json()
@@ -127,12 +140,12 @@ describe('GET /api/items', () => {
     for (let i = 1; i <= 3; i += 1) {
       await app.request('/api/items', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Cookie: cookie },
         body: JSON.stringify({ url: `https://example.com/${i}` }),
       })
     }
 
-    const res = await app.request('/api/items?limit=2&offset=1')
+    const res = await app.request('/api/items?limit=2&offset=1', { headers: { Cookie: cookie } })
 
     expect(res.status).toBe(200)
     const data = await res.json()
@@ -145,11 +158,12 @@ describe('GET /api/items', () => {
   it('should filter items by search query', async () => {
     db.prepare(
       `
-      INSERT INTO items (id, url, url_normalized, title, domain, status, clean_text, summary, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO items (id, user_id, url, url_normalized, title, domain, status, clean_text, summary, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `
     ).run(
       'item_react',
+      userId,
       'https://example.com/react',
       'https://example.com/react',
       'React Tutorial',
@@ -163,11 +177,12 @@ describe('GET /api/items', () => {
 
     db.prepare(
       `
-      INSERT INTO items (id, url, url_normalized, title, domain, status, clean_text, summary, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO items (id, user_id, url, url_normalized, title, domain, status, clean_text, summary, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `
     ).run(
       'item_vue',
+      userId,
       'https://example.com/vue',
       'https://example.com/vue',
       'Vue Guide',
@@ -186,7 +201,7 @@ describe('GET /api/items', () => {
         ('item_vue', 'Vue Guide', 'Learn Vue', '', 'Vue is great')
     `)
 
-    const res = await app.request('/api/items?q=react')
+    const res = await app.request('/api/items?q=react', { headers: { Cookie: cookie } })
 
     expect(res.status).toBe(200)
     const data = await res.json()
@@ -198,11 +213,15 @@ describe('GET /api/items', () => {
 
 describe('GET /api/items/:id', () => {
   let db: Database.Database
+  let cookie: string
 
-  beforeEach(() => {
+  beforeEach(async () => {
     db = new Database(':memory:')
     applySchema(db, defaultSchemaPath())
     setDb(db)
+
+    const auth = await registerTestUser(app)
+    cookie = auth.cookie
   })
 
   afterEach(() => {
@@ -212,12 +231,12 @@ describe('GET /api/items/:id', () => {
   it('should return item by id', async () => {
     const createRes = await app.request('/api/items', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
       body: JSON.stringify({ url: 'https://example.com' }),
     })
     const created = await createRes.json()
 
-    const res = await app.request(`/api/items/${created.id}`)
+    const res = await app.request(`/api/items/${created.id}`, { headers: { Cookie: cookie } })
 
     expect(res.status).toBe(200)
     const data = await res.json()
@@ -227,7 +246,7 @@ describe('GET /api/items/:id', () => {
   })
 
   it('should return 404 for non-existent item', async () => {
-    const res = await app.request('/api/items/item_nonexistent')
+    const res = await app.request('/api/items/item_nonexistent', { headers: { Cookie: cookie } })
 
     expect(res.status).toBe(404)
     const data = await res.json()
@@ -237,11 +256,15 @@ describe('GET /api/items/:id', () => {
 
 describe('PATCH /api/items/:id', () => {
   let db: Database.Database
+  let cookie: string
 
-  beforeEach(() => {
+  beforeEach(async () => {
     db = new Database(':memory:')
     applySchema(db, defaultSchemaPath())
     setDb(db)
+
+    const auth = await registerTestUser(app)
+    cookie = auth.cookie
   })
 
   afterEach(() => {
@@ -251,14 +274,14 @@ describe('PATCH /api/items/:id', () => {
   it('should update summary', async () => {
     const createRes = await app.request('/api/items', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
       body: JSON.stringify({ url: 'https://example.com' }),
     })
     const created = await createRes.json()
 
     const res = await app.request(`/api/items/${created.id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
       body: JSON.stringify({ summary: 'My summary' }),
     })
 
@@ -271,7 +294,7 @@ describe('PATCH /api/items/:id', () => {
   it('should return 404 for non-existent item', async () => {
     const res = await app.request('/api/items/item_nonexistent', {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
       body: JSON.stringify({ note: 'Test' }),
     })
 
@@ -281,11 +304,15 @@ describe('PATCH /api/items/:id', () => {
 
 describe('DELETE /api/items/:id', () => {
   let db: Database.Database
+  let cookie: string
 
-  beforeEach(() => {
+  beforeEach(async () => {
     db = new Database(':memory:')
     applySchema(db, defaultSchemaPath())
     setDb(db)
+
+    const auth = await registerTestUser(app)
+    cookie = auth.cookie
   })
 
   afterEach(() => {
@@ -295,26 +322,28 @@ describe('DELETE /api/items/:id', () => {
   it('should delete item', async () => {
     const createRes = await app.request('/api/items', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
       body: JSON.stringify({ url: 'https://example.com' }),
     })
     const created = await createRes.json()
 
     const res = await app.request(`/api/items/${created.id}`, {
       method: 'DELETE',
+      headers: { Cookie: cookie },
     })
 
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data.message).toBe('Item deleted')
 
-    const getRes = await app.request(`/api/items/${created.id}`)
+    const getRes = await app.request(`/api/items/${created.id}`, { headers: { Cookie: cookie } })
     expect(getRes.status).toBe(404)
   })
 
   it('should return 404 for non-existent item', async () => {
     const res = await app.request('/api/items/item_nonexistent', {
       method: 'DELETE',
+      headers: { Cookie: cookie },
     })
 
     expect(res.status).toBe(404)

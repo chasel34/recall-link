@@ -6,6 +6,7 @@ import { updateItem } from '../features/items/items.db.js'
 
 describe('items_fts sync', () => {
   let db: Database.Database
+  const userId = 'user_test'
 
   beforeEach(() => {
     db = new Database(':memory:')
@@ -21,11 +22,12 @@ describe('items_fts sync', () => {
     const now = new Date().toISOString()
     db.prepare(
       `
-        INSERT INTO items (id, url, url_normalized, domain, status, clean_text, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO items (id, user_id, url, url_normalized, domain, status, clean_text, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `
     ).run(
       'item_fts',
+      userId,
       'https://example.com/a',
       'https://example.com/a',
       'example.com',
@@ -35,7 +37,7 @@ describe('items_fts sync', () => {
       now
     )
 
-    updateItem(db, 'item_fts', { summary: 'My summary', tags: ['React', '前端'] })
+    updateItem(db, userId, 'item_fts', { summary: 'My summary', tags: ['React', '前端'] })
 
     const row = db
       .prepare('SELECT item_id, summary, tags FROM items_fts WHERE item_id = ?')

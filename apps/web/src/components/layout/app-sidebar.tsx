@@ -1,7 +1,10 @@
-import { Link, useRouterState } from '@tanstack/react-router'
-import { FileText, MessageSquare, Settings } from 'lucide-react'
+import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
+import { FileText, MessageSquare, Settings, LogOut } from 'lucide-react'
 import { Button } from "@/components/base"
 import { ReactNode } from 'react'
+import React from 'react'
+import { apiClient } from '@/lib/api-client'
+import { queryClient } from '@/lib/query-client'
 
 interface AppSidebarProps {
   onItemClick?: () => void
@@ -10,8 +13,11 @@ interface AppSidebarProps {
 
 export function AppSidebar({ onItemClick, children }: AppSidebarProps) {
   const router = useRouterState()
+  const navigate = useNavigate()
   const currentPath = router.location.pathname
   const isActive = (path: string) => currentPath.startsWith(path)
+
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false)
 
   const menuItems = [
     { name: '记录', path: '/items', icon: FileText, disabled: false },
@@ -51,6 +57,30 @@ export function AppSidebar({ onItemClick, children }: AppSidebarProps) {
             )}
           </div>
         ))}
+      </div>
+
+      <div className="px-4 pb-4">
+        <Button
+          variant="light"
+          className="w-full justify-start"
+          startContent={<LogOut className="w-4 h-4" />}
+          isLoading={isLoggingOut}
+          onPress={async () => {
+            if (isLoggingOut) return
+            setIsLoggingOut(true)
+            try {
+              await apiClient.logout()
+            } catch {
+              // ignore
+            } finally {
+              queryClient.clear()
+              setIsLoggingOut(false)
+              await navigate({ to: '/login', replace: true })
+            }
+          }}
+        >
+          退出登录
+        </Button>
       </div>
       
       {children && (

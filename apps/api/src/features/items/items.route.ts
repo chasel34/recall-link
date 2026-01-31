@@ -7,25 +7,29 @@ import {
   createItemWithJob,
   listItems,
   listItemsByTags,
-  getItemById,
+  getItemByIdForUser,
   updateItem,
   deleteItem,
 } from './items.db.js'
 import { getDb } from '../../db/context.js'
 import { getItemTags } from '../tags/tags.db.js'
 import { searchItems } from './items.search.js'
+import { getAuthUser, requireAuth } from '../auth/auth.middleware.js'
 
 export const itemsApp = new Hono()
+
+itemsApp.use('*', requireAuth)
 
 itemsApp.post('/', zValidator('json', createItemSchema), (c) => {
   try {
     const db = getDb()
+    const userId = getAuthUser(c).id
     const { url } = c.req.valid('json')
 
     const urlNormalized = normalizeUrl(url)
     const domain = extractDomain(url)
 
-    const existing = findItemByNormalizedUrl(db, urlNormalized)
+    const existing = findItemByNormalizedUrl(db, userId, urlNormalized)
     if (existing) {
       return c.json({
         error: 'DUPLICATE_URL',
@@ -41,6 +45,7 @@ itemsApp.post('/', zValidator('json', createItemSchema), (c) => {
     createItemWithJob(db, {
       itemId,
       jobId,
+      userId,
       url,
       urlNormalized,
       domain,
@@ -66,16 +71,17 @@ itemsApp.post('/', zValidator('json', createItemSchema), (c) => {
 itemsApp.get('/', zValidator('query', listItemsQuerySchema), (c) => {
   try {
     const db = getDb()
+    const userId = getAuthUser(c).id
     const filters = c.req.valid('query')
 
-    let result
+    let result: ReturnType<typeof listItems>
     if (filters.q) {
-      result = searchItems(db, filters.q, filters)
+      result = searchItems(db, userId, filters.q, filters)
     } else if (filters.tags) {
       const tagNames = filters.tags.split(',').map((tag) => tag.trim())
-      result = listItemsByTags(db, tagNames, filters)
+      result = listItemsByTags(db, userId, tagNames, filters)
     } else {
-      result = listItems(db, filters)
+      result = listItems(db, userId, filters)
     }
 
     const itemsWithTags = result.items.map((item) => ({
@@ -101,9 +107,10 @@ itemsApp.get('/', zValidator('query', listItemsQuerySchema), (c) => {
 itemsApp.get('/:id', (c) => {
   try {
     const db = getDb()
+    const userId = getAuthUser(c).id
     const id = c.req.param('id')
 
-    const item = getItemById(db, id)
+    const item = getItemByIdForUser(db, userId, id)
 
     if (!item) {
       return c.json({
@@ -130,10 +137,11 @@ itemsApp.get('/:id', (c) => {
 itemsApp.patch('/:id', zValidator('json', patchItemSchema), (c) => {
   try {
     const db = getDb()
+    const userId = getAuthUser(c).id
     const id = c.req.param('id')
     const updates = c.req.valid('json')
 
-    const existing = getItemById(db, id)
+    const existing = getItemByIdForUser(db, userId, id)
     if (!existing) {
       return c.json({
         error: 'NOT_FOUND',
@@ -150,9 +158,9 @@ itemsApp.patch('/:id', zValidator('json', patchItemSchema), (c) => {
       }, 400)
     }
 
-    updateItem(db, id, updates)
+    updateItem(db, userId, id, updates)
 
-    const updated = getItemById(db, id)
+    const updated = getItemByIdForUser(db, userId, id)
     const tags = getItemTags(db, id)
 
     return c.json({
@@ -171,16 +179,18 @@ itemsApp.patch('/:id', zValidator('json', patchItemSchema), (c) => {
 itemsApp.delete('/:id', (c) => {
   try {
     const db = getDb()
+    const userId = getAuthUser(c).id
     const id = c.req.param('id')
 
-    const result = deleteItem(db, id)
-
-    if (result.deletedItem === 0) {
+    const existing = getItemByIdForUser(db, userId, id)
+    if (!existing) {
       return c.json({
         error: 'NOT_FOUND',
         message: 'Item not found',
       }, 404)
     }
+
+    const result = deleteItem(db, id)
 
     return c.json({
       message: 'Item deleted',
@@ -198,9 +208,10 @@ itemsApp.delete('/:id', (c) => {
 itemsApp.post('/:id/analyze', (c) => {
   try {
     const db = getDb()
+    const userId = getAuthUser(c).id
     const id = c.req.param('id')
 
-    const item = getItemById(db, id)
+    const item = getItemByIdForUser(db, userId, id)
     if (!item) {
       return c.json(
         {

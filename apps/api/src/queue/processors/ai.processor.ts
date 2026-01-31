@@ -17,10 +17,16 @@ export async function processAIJob(db: Database, job: Job): Promise<void> {
     throw new Error('Item has no content to analyze')
   }
 
+  if (!item.user_id) {
+    throw new Error('Item is missing user_id')
+  }
+
+  const userId = item.user_id
+
   console.log(`[ai] Processing ${item.url}`)
 
   const { tags: newTags, summary } = await generateTagsAndSummary(item.clean_text)
-  const existingTags = getAllTagNames(db)
+  const existingTags = getAllTagNames(db, userId)
   const mergedTags = await mergeTagsWithExisting(newTags, existingTags)
 
   db.transaction(() => {
@@ -33,7 +39,7 @@ export async function processAIJob(db: Database, job: Job): Promise<void> {
       `
     ).run(summary, now, item.id)
 
-    setItemTags(db, item.id, mergedTags)
+    setItemTags(db, userId, item.id, mergedTags)
 
     replaceItemFts(db, item.id)
   })()

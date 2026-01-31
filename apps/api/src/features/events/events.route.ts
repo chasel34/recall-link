@@ -1,10 +1,14 @@
 import { Hono } from 'hono'
 import { streamSSE } from 'hono/streaming'
 import { subscribeEvents, type AnyEvent } from './events.bus.js'
+import { getAuthUser, requireAuth } from '../auth/auth.middleware.js'
 
 export const eventsApp = new Hono()
 
+eventsApp.use('*', requireAuth)
+
 eventsApp.get('/', (c) => {
+  const userId = getAuthUser(c).id
   return streamSSE(c, async (stream) => {
     const queue: AnyEvent[] = []
     let notify: (() => void) | null = null
@@ -43,6 +47,15 @@ eventsApp.get('/', (c) => {
       while (queue.length > 0) {
         const event = queue.shift()
         if (!event) continue
+
+        if (event.type === 'item.updated') {
+          const item = (event as AnyEvent & { data?: any })?.data?.item as unknown
+          const itemUserId =
+            item && typeof item === 'object' && typeof (item as any).user_id === 'string' ? (item as any).user_id : null
+          if (itemUserId !== userId) {
+            continue
+          }
+        }
         try {
           await stream.writeSSE({ event: event.type, data: JSON.stringify(event) })
         } catch {

@@ -2,6 +2,29 @@ import { subscribeSSE } from './sse'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8787'
 
+export type ApiErrorData = {
+  error?: string
+  message?: string
+}
+
+export class ApiError extends Error {
+  status: number
+  data: ApiErrorData
+
+  constructor(status: number, message: string, data: ApiErrorData) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+    this.data = data
+  }
+}
+
+export type User = {
+  id: string
+  email: string
+  created_at: string
+}
+
 export interface Item {
   id: string
   url: string
@@ -96,6 +119,7 @@ export type ChatStreamMeta = {
 class ApiClient {
   private async request<T>(path: string, options?: RequestInit): Promise<T> {
     const response = await fetch(`${API_BASE}${path}`, {
+      credentials: 'include',
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -104,11 +128,35 @@ class ApiClient {
     })
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}))
-      throw new Error(error.message || `HTTP ${response.status}`)
+      const data = (await response.json().catch(() => ({}))) as ApiErrorData
+      throw new ApiError(response.status, data.message || `HTTP ${response.status}`, data)
     }
 
     return response.json()
+  }
+
+  async register(email: string, password: string): Promise<{ user: User }> {
+    return this.request<{ user: User }>('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    })
+  }
+
+  async login(email: string, password: string): Promise<{ user: User }> {
+    return this.request<{ user: User }>('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    })
+  }
+
+  async logout(): Promise<{ ok: true } | { ok: boolean }> {
+    return this.request<{ ok: true }>('/api/auth/logout', {
+      method: 'POST',
+    })
+  }
+
+  async me(): Promise<{ user: User }> {
+    return this.request<{ user: User }>('/api/auth/me')
   }
 
   async listItems(params: ListItemsParams = {}): Promise<ListItemsResponse> {

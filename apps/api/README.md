@@ -21,6 +21,55 @@ WORKER_ENABLED=1 pnpm dev
 
 ## API Endpoints
 
+## Authentication
+
+Auth uses an **HttpOnly cookie session** (`rl_session`). Most API endpoints require authentication.
+
+### POST /api/auth/register
+
+Create a new account and log in.
+
+**Request:**
+```json
+{ "email": "you@example.com", "password": "password123" }
+```
+
+**Response (201):**
+```json
+{ "user": { "id": "user_...", "email": "you@example.com", "created_at": "..." } }
+```
+
+### POST /api/auth/login
+
+Log in and set the session cookie.
+
+**Request:**
+```json
+{ "email": "you@example.com", "password": "password123" }
+```
+
+### POST /api/auth/logout
+
+Clear the session.
+
+### GET /api/auth/me
+
+Get the current user.
+
+---
+
+## CORS (Web)
+
+Web auth uses cookies, so CORS must allow credentials.
+
+Env vars:
+
+```bash
+WEB_ORIGINS=http://localhost:3000
+```
+
+You can pass multiple origins via comma-separated values.
+
 ### POST /api/items
 
 Save a new webpage URL.

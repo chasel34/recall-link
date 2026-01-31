@@ -4,6 +4,7 @@ import { searchItems } from './items.search.js'
 
 describe('searchItems', () => {
   let db: Database.Database
+  const userId = 'user_test'
 
   beforeEach(() => {
     db = new Database(':memory:')
@@ -11,6 +12,7 @@ describe('searchItems', () => {
     db.exec(`
       CREATE TABLE items (
         id TEXT PRIMARY KEY,
+        user_id TEXT,
         url TEXT NOT NULL,
         url_normalized TEXT NOT NULL UNIQUE,
         domain TEXT,
@@ -34,10 +36,11 @@ describe('searchItems', () => {
 
   it('should search items by query string', () => {
     db.prepare(`
-      INSERT INTO items (id, url, url_normalized, domain, title, summary, clean_text, status, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO items (id, user_id, url, url_normalized, domain, title, summary, clean_text, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       'item_1',
+      userId,
       'https://example.com/react',
       'https://example.com/react',
       'example.com',
@@ -54,7 +57,7 @@ describe('searchItems', () => {
       VALUES ('item_1', 'React Tutorial', 'Learn React hooks', '', 'React hooks are powerful')
     `)
 
-    const result = searchItems(db, 'react', { limit: 20, offset: 0 })
+    const result = searchItems(db, userId, 'react', { limit: 20, offset: 0 })
 
     expect(result.items).toHaveLength(1)
     expect(result.items[0].id).toBe('item_1')
@@ -62,7 +65,7 @@ describe('searchItems', () => {
   })
 
   it('should return empty result when no matches', () => {
-    const result = searchItems(db, 'nonexistent', { limit: 20, offset: 0 })
+    const result = searchItems(db, userId, 'nonexistent', { limit: 20, offset: 0 })
 
     expect(result.items).toHaveLength(0)
     expect(result.total).toBe(0)
@@ -71,10 +74,11 @@ describe('searchItems', () => {
   it('should support pagination', () => {
     for (let i = 1; i <= 5; i += 1) {
       db.prepare(`
-        INSERT INTO items (id, url, url_normalized, domain, title, summary, clean_text, status, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO items (id, user_id, url, url_normalized, domain, title, summary, clean_text, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         `item_${i}`,
+        userId,
         `https://example.com/${i}`,
         `https://example.com/${i}`,
         'example.com',
@@ -92,7 +96,7 @@ describe('searchItems', () => {
       `)
     }
 
-    const result = searchItems(db, 'test', { limit: 2, offset: 2 })
+    const result = searchItems(db, userId, 'test', { limit: 2, offset: 2 })
 
     expect(result.items).toHaveLength(2)
     expect(result.total).toBe(5)

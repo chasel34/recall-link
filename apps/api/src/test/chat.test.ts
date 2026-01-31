@@ -2,6 +2,7 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import Database from 'better-sqlite3'
 import { applySchema, defaultSchemaPath } from '../db/client.js'
 import { setDb, closeDb } from '../db/context.js'
+import { registerTestUser } from './test-auth.js'
 
 vi.mock('../features/chat/chat.llm.js', () => {
   async function* gen() {
@@ -40,11 +41,17 @@ function parseSse(body: string): Array<{ event: string; data: string }> {
 
 describe('chat routes', () => {
   let db: Database.Database
+  let cookie: string
+  let userId: string
 
-  beforeEach(() => {
+  beforeEach(async () => {
     db = new Database(':memory:')
     applySchema(db, defaultSchemaPath())
     setDb(db)
+
+    const auth = await registerTestUser(app)
+    cookie = auth.cookie
+    userId = auth.user.id
   })
 
   afterEach(() => {
@@ -54,7 +61,7 @@ describe('chat routes', () => {
   it('creates session and lists it', async () => {
     const create = await app.request('/api/chat/sessions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
       body: JSON.stringify({}),
     })
 
@@ -62,7 +69,7 @@ describe('chat routes', () => {
     const created = await create.json()
     expect(created.id).toMatch(/^chat_/) // generateId('chat')
 
-    const list = await app.request('/api/chat/sessions')
+    const list = await app.request('/api/chat/sessions', { headers: { Cookie: cookie } })
     expect(list.status).toBe(200)
     const listBody = await list.json()
     expect(listBody.sessions.length).toBe(1)
@@ -73,11 +80,12 @@ describe('chat routes', () => {
     // Insert a searchable item + fts row so sources is non-empty.
     db.prepare(
       `
-        INSERT INTO items (id, url, url_normalized, domain, title, status, clean_text, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO items (id, user_id, url, url_normalized, domain, title, status, clean_text, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `
     ).run(
       'item_test',
+      userId,
       'https://example.com/react',
       'https://example.com/react',
       'example.com',
@@ -94,14 +102,14 @@ describe('chat routes', () => {
 
     const create = await app.request('/api/chat/sessions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
       body: JSON.stringify({}),
     })
     const session = await create.json()
 
     const res = await app.request(`/api/chat/sessions/${session.id}/messages`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
       body: JSON.stringify({ message: 'react hooks' }),
     })
 
@@ -124,7 +132,7 @@ describe('chat routes', () => {
 
     expect(events.some((e) => e.event === 'done')).toBe(true)
 
-    const messagesRes = await app.request(`/api/chat/sessions/${session.id}/messages`)
+    const messagesRes = await app.request(`/api/chat/sessions/${session.id}/messages`, { headers: { Cookie: cookie } })
     expect(messagesRes.status).toBe(200)
     const messagesBody = await messagesRes.json()
     expect(messagesBody.messages.length).toBe(2)

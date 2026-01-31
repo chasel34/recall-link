@@ -11,6 +11,7 @@ vi.mock('../../services/ai.service.js', () => ({
 
 describe('ai.processor', () => {
   let db: Database.Database
+  const userId = 'user_test'
 
   beforeEach(() => {
     db = new Database(':memory:')
@@ -20,11 +21,12 @@ describe('ai.processor', () => {
     const timestamp = new Date().toISOString()
     db.prepare(
       `
-        INSERT INTO items (id, url, url_normalized, domain, status, clean_text, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO items (id, user_id, url, url_normalized, domain, status, clean_text, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `
     ).run(
       'item_test',
+      userId,
       'https://example.com',
       'https://example.com',
       'example.com',

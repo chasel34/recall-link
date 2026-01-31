@@ -8,10 +8,10 @@ export type Tag = {
   item_count: number
 }
 
-export function findOrCreateTag(db: Database, name: string): string {
+export function findOrCreateTag(db: Database, userId: string, name: string): string {
   const existing = db
-    .prepare('SELECT id FROM tags WHERE name = ?')
-    .get(name) as { id: string } | undefined
+    .prepare('SELECT id FROM tags WHERE user_id = ? AND name = ?')
+    .get(userId, name) as { id: string } | undefined
 
   if (existing) {
     return existing.id
@@ -21,15 +21,15 @@ export function findOrCreateTag(db: Database, name: string): string {
   const now = new Date().toISOString()
   db.prepare(
     `
-      INSERT INTO tags (id, name, created_at, item_count)
-      VALUES (?, ?, ?, 0)
+      INSERT INTO tags (id, user_id, name, created_at, item_count)
+      VALUES (?, ?, ?, ?, 0)
     `
-  ).run(id, name, now)
+  ).run(id, userId, name, now)
 
   return id
 }
 
-export function setItemTags(db: Database, itemId: string, tagNames: string[]): void {
+export function setItemTags(db: Database, userId: string, itemId: string, tagNames: string[]): void {
   db.transaction(() => {
     // Get old tag IDs before deletion
     const oldTagIds = db
@@ -45,7 +45,7 @@ export function setItemTags(db: Database, itemId: string, tagNames: string[]): v
     const newTagIds = new Set<string>()
     const now = new Date().toISOString()
     for (const name of tagNames) {
-      const tagId = findOrCreateTag(db, name)
+      const tagId = findOrCreateTag(db, userId, name)
       newTagIds.add(tagId)
       db.prepare(
         `
@@ -89,21 +89,22 @@ export function getItemTags(db: Database, itemId: string): string[] {
   return tags.map((tag) => tag.name)
 }
 
-export function getAllTagNames(db: Database): string[] {
+export function getAllTagNames(db: Database, userId: string): string[] {
   const tags = db
-    .prepare('SELECT name FROM tags ORDER BY name ASC')
-    .all() as { name: string }[]
+    .prepare('SELECT name FROM tags WHERE user_id = ? ORDER BY name ASC')
+    .all(userId) as { name: string }[]
   return tags.map((tag) => tag.name)
 }
 
-export function listTags(db: Database): Tag[] {
+export function listTags(db: Database, userId: string): Tag[] {
   return db
     .prepare(
       `
         SELECT id, name, item_count, created_at
         FROM tags
+        WHERE user_id = ?
         ORDER BY item_count DESC, name ASC
       `
     )
-    .all() as Tag[]
+    .all(userId) as Tag[]
 }

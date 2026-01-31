@@ -13,6 +13,7 @@ import { getItemTags } from '../tags/tags.db.js'
 
 describe('items.db', () => {
   let db: Database.Database
+  const userId = 'user_test'
 
   beforeEach(() => {
     db = new Database(':memory:')
@@ -21,18 +22,18 @@ describe('items.db', () => {
 
   describe('findItemByNormalizedUrl', () => {
     it('should return null when item does not exist', () => {
-      const result = findItemByNormalizedUrl(db, 'https://example.com')
+      const result = findItemByNormalizedUrl(db, userId, 'https://example.com')
       expect(result).toBeNull()
     })
 
     it('should return item when url_normalized matches', () => {
       const timestamp = new Date().toISOString()
       db.prepare(`
-        INSERT INTO items (id, url, url_normalized, domain, status, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run('item_test', 'https://example.com', 'https://example.com', 'example.com', 'pending', timestamp, timestamp)
+        INSERT INTO items (id, user_id, url, url_normalized, domain, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run('item_test', userId, 'https://example.com', 'https://example.com', 'example.com', 'pending', timestamp, timestamp)
 
-      const result = findItemByNormalizedUrl(db, 'https://example.com')
+      const result = findItemByNormalizedUrl(db, userId, 'https://example.com')
       expect(result).toBeTruthy()
       expect(result?.id).toBe('item_test')
     })
@@ -44,6 +45,7 @@ describe('items.db', () => {
       const result = createItemWithJob(db, {
         itemId: 'item_test123',
         jobId: 'job_test456',
+        userId,
         url: 'https://example.com/article',
         urlNormalized: 'https://example.com/article',
         domain: 'example.com',
@@ -71,6 +73,7 @@ describe('items.db', () => {
       createItemWithJob(db, {
         itemId: 'item_1',
         jobId: 'job_1',
+        userId,
         url: 'https://example.com',
         urlNormalized: 'https://example.com',
         domain: 'example.com',
@@ -81,6 +84,7 @@ describe('items.db', () => {
         createItemWithJob(db, {
           itemId: 'item_2',
           jobId: 'job_1',
+          userId,
           url: 'https://other.com',
           urlNormalized: 'https://other.com',
           domain: 'other.com',
@@ -127,10 +131,11 @@ describe('items.db', () => {
 
       for (const item of items) {
         db.prepare(`
-          INSERT INTO items (id, url, url_normalized, domain, status, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO items (id, user_id, url, url_normalized, domain, status, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
           item.id,
+          userId,
           item.url,
           item.url_normalized,
           item.domain,
@@ -142,52 +147,52 @@ describe('items.db', () => {
     })
 
     it('should return all items with default pagination', () => {
-      const result = listItems(db, {})
+      const result = listItems(db, userId, {})
       expect(result.items).toHaveLength(3)
       expect(result.total).toBe(3)
     })
 
     it('should paginate results', () => {
-      const result = listItems(db, { limit: 2, offset: 1 })
+      const result = listItems(db, userId, { limit: 2, offset: 1 })
       expect(result.items).toHaveLength(2)
       expect(result.total).toBe(3)
     })
 
     it('should filter by status', () => {
-      const result = listItems(db, { status: 'pending' })
+      const result = listItems(db, userId, { status: 'pending' })
       expect(result.items).toHaveLength(1)
       expect(result.items[0].id).toBe('item_2')
     })
 
     it('should filter by domain', () => {
-      const result = listItems(db, { domain: 'a.com' })
+      const result = listItems(db, userId, { domain: 'a.com' })
       expect(result.items).toHaveLength(2)
     })
 
     it('should filter by created_after', () => {
-      const result = listItems(db, { created_after: '2026-01-02T00:00:00.000Z' })
+      const result = listItems(db, userId, { created_after: '2026-01-02T00:00:00.000Z' })
       expect(result.items).toHaveLength(2)
     })
 
     it('should filter by created_before', () => {
-      const result = listItems(db, { created_before: '2026-01-02T00:00:00.000Z' })
+      const result = listItems(db, userId, { created_before: '2026-01-02T00:00:00.000Z' })
       expect(result.items).toHaveLength(1)
     })
 
     it('should sort by created_at desc by default', () => {
-      const result = listItems(db, {})
+      const result = listItems(db, userId, {})
       expect(result.items[0].id).toBe('item_3')
       expect(result.items[2].id).toBe('item_1')
     })
 
     it('should sort by created_at asc', () => {
-      const result = listItems(db, { sort_by: 'created_at', sort_order: 'asc' })
+      const result = listItems(db, userId, { sort_by: 'created_at', sort_order: 'asc' })
       expect(result.items[0].id).toBe('item_1')
       expect(result.items[2].id).toBe('item_3')
     })
 
     it('should combine filters and sorting', () => {
-      const result = listItems(db, {
+      const result = listItems(db, userId, {
         domain: 'a.com',
         sort_by: 'created_at',
         sort_order: 'asc',
@@ -206,10 +211,11 @@ describe('items.db', () => {
 
       const timestamp = new Date().toISOString()
       db.prepare(`
-        INSERT INTO items (id, url, url_normalized, domain, status, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO items (id, user_id, url, url_normalized, domain, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         'item_test',
+        userId,
         'https://example.com',
         'https://example.com',
         'example.com',
@@ -238,10 +244,11 @@ describe('items.db', () => {
 
       const timestamp = new Date().toISOString()
       db.prepare(`
-        INSERT INTO items (id, url, url_normalized, domain, status, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO items (id, user_id, url, url_normalized, domain, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         'item_test',
+        userId,
         'https://example.com',
         'https://example.com',
         'example.com',
@@ -252,7 +259,7 @@ describe('items.db', () => {
     })
 
     it('should update summary with user source', () => {
-      const result = updateItem(db, 'item_test', { summary: 'My summary' })
+      const result = updateItem(db, userId, 'item_test', { summary: 'My summary' })
       expect(result.changes).toBe(1)
 
       const item = getItemById(db, 'item_test')
@@ -261,7 +268,7 @@ describe('items.db', () => {
     })
 
     it('should update tags with user source', () => {
-      const result = updateItem(db, 'item_test', { tags: ['react', 'typescript'] })
+      const result = updateItem(db, userId, 'item_test', { tags: ['react', 'typescript'] })
       expect(result.changes).toBe(0) // No SQL fields updated, only item_tags table
 
       // Verify tags were set in item_tags table
@@ -271,20 +278,20 @@ describe('items.db', () => {
 
     it('should sync tags to item_tags table when updating', () => {
       // Update tags via updateItem
-      updateItem(db, 'item_test', { tags: ['React', 'TypeScript', 'Frontend'] })
+      updateItem(db, userId, 'item_test', { tags: ['React', 'TypeScript', 'Frontend'] })
 
       // Verify item_tags table was updated
       const tags = getItemTags(db, 'item_test')
       expect(tags).toEqual(['Frontend', 'React', 'TypeScript'])
 
       // Update again with different tags
-      updateItem(db, 'item_test', { tags: ['Vue', 'JavaScript'] })
+      updateItem(db, userId, 'item_test', { tags: ['Vue', 'JavaScript'] })
       const updatedTags = getItemTags(db, 'item_test')
       expect(updatedTags).toEqual(['JavaScript', 'Vue'])
     })
 
     it('should update note', () => {
-      const result = updateItem(db, 'item_test', { note: 'Important article' })
+      const result = updateItem(db, userId, 'item_test', { note: 'Important article' })
       expect(result.changes).toBe(1)
 
       const item = getItemById(db, 'item_test')
@@ -292,7 +299,7 @@ describe('items.db', () => {
     })
 
     it('should update multiple fields at once', () => {
-      const result = updateItem(db, 'item_test', {
+      const result = updateItem(db, userId, 'item_test', {
         summary: 'Summary',
         tags: ['tag1'],
         note: 'Note',
@@ -310,7 +317,7 @@ describe('items.db', () => {
 
     it('should update updated_at timestamp', () => {
       const before = Date.now()
-      updateItem(db, 'item_test', { note: 'Test' })
+      updateItem(db, userId, 'item_test', { note: 'Test' })
       const after = Date.now()
 
       const item = getItemById(db, 'item_test')
@@ -320,7 +327,7 @@ describe('items.db', () => {
     })
 
     it('should return 0 changes if item does not exist', () => {
-      const result = updateItem(db, 'item_nonexistent', { note: 'Test' })
+      const result = updateItem(db, userId, 'item_nonexistent', { note: 'Test' })
       expect(result.changes).toBe(0)
     })
   })
@@ -332,10 +339,11 @@ describe('items.db', () => {
 
       const timestamp = new Date().toISOString()
       db.prepare(`
-        INSERT INTO items (id, url, url_normalized, domain, status, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO items (id, user_id, url, url_normalized, domain, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         'item_test',
+        userId,
         'https://example.com',
         'https://example.com',
         'example.com',

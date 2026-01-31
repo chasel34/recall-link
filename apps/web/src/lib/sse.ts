@@ -34,7 +34,7 @@ export function subscribeSSE(options: SubscribeSSEOptions): SSESubscription {
 
 function subscribeEventSource(options: SubscribeSSEOptions): SSESubscription {
   // EventSource does not support custom headers or POST.
-  const es = new EventSource(options.url)
+  const es = new EventSource(options.url, { withCredentials: true })
 
   const handler = (event: MessageEvent) => {
     options.onEvent({ event: event.type || 'message', data: String(event.data ?? '') })
@@ -93,6 +93,7 @@ function subscribeFetchSSE(options: SubscribeSSEOptions): SSESubscription {
     try {
       const res = await fetch(options.url, {
         method: options.method ?? 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           ...(options.headers ?? {}),

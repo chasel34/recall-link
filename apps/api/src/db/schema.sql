@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS items (
   -- Nullable for now. Future: populate from auth context.
   user_id TEXT,
   url TEXT NOT NULL,
-  url_normalized TEXT NOT NULL UNIQUE,
+  url_normalized TEXT NOT NULL,
   title TEXT,
   domain TEXT,
   status TEXT NOT NULL,
@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS items (
   processed_at TEXT
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_items_user_id_url_normalized ON items(user_id, url_normalized);
 CREATE INDEX IF NOT EXISTS idx_items_user_id_created_at ON items(user_id, created_at);
 
 -- tags
@@ -27,12 +28,33 @@ CREATE TABLE IF NOT EXISTS tags (
   id TEXT PRIMARY KEY,
   -- Nullable for now. Future: populate from auth context.
   user_id TEXT,
-  name TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
   created_at TEXT NOT NULL,
   item_count INTEGER DEFAULT 0
 );
 
-CREATE INDEX IF NOT EXISTS idx_tags_user_id_name ON tags(user_id, name);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tags_user_id_name ON tags(user_id, name);
+
+-- users
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  password_salt TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+-- sessions
+CREATE TABLE IF NOT EXISTS sessions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  token_hash TEXT NOT NULL UNIQUE,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_sessions_user_id_created_at ON sessions(user_id, created_at);
 
 -- item-tags
 CREATE TABLE IF NOT EXISTS item_tags (

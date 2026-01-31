@@ -11,6 +11,7 @@ import {
 
 describe('tags.db', () => {
   let db: Database.Database
+  const userId = 'user_test'
 
   beforeEach(() => {
     db = new Database(':memory:')
@@ -18,14 +19,14 @@ describe('tags.db', () => {
 
     const timestamp = new Date().toISOString()
     db.prepare(`
-      INSERT INTO items (id, url, url_normalized, domain, status, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run('item_test', 'https://example.com', 'https://example.com', 'example.com', 'pending', timestamp, timestamp)
+      INSERT INTO items (id, user_id, url, url_normalized, domain, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run('item_test', userId, 'https://example.com', 'https://example.com', 'example.com', 'pending', timestamp, timestamp)
   })
 
   describe('findOrCreateTag', () => {
     it('should create new tag if not exists', () => {
-      const tagId = findOrCreateTag(db, 'React')
+      const tagId = findOrCreateTag(db, userId, 'React')
       expect(tagId).toMatch(/^tag_/)
 
       const tag = db.prepare('SELECT * FROM tags WHERE id = ?').get(tagId) as any
@@ -34,8 +35,8 @@ describe('tags.db', () => {
     })
 
     it('should return existing tag if already exists', () => {
-      const id1 = findOrCreateTag(db, 'React')
-      const id2 = findOrCreateTag(db, 'React')
+      const id1 = findOrCreateTag(db, userId, 'React')
+      const id2 = findOrCreateTag(db, userId, 'React')
       expect(id1).toBe(id2)
 
       const count = db.prepare('SELECT COUNT(*) as count FROM tags').get() as { count: number }
@@ -45,30 +46,32 @@ describe('tags.db', () => {
 
   describe('setItemTags', () => {
     it('should set tags for item', () => {
-      setItemTags(db, 'item_test', ['React', 'TypeScript', '前端'])
+      setItemTags(db, userId, 'item_test', ['React', 'TypeScript', '前端'])
 
       const tags = getItemTags(db, 'item_test')
       expect(tags).toEqual(['React', 'TypeScript', '前端'])
     })
 
     it('should replace existing tags', () => {
-      setItemTags(db, 'item_test', ['React', 'TypeScript'])
-      setItemTags(db, 'item_test', ['Vue', 'JavaScript'])
+      setItemTags(db, userId, 'item_test', ['React', 'TypeScript'])
+      setItemTags(db, userId, 'item_test', ['Vue', 'JavaScript'])
 
       const tags = getItemTags(db, 'item_test')
       expect(tags).toEqual(['JavaScript', 'Vue'])
     })
 
     it('should update item_count for tags', () => {
-      setItemTags(db, 'item_test', ['React', 'TypeScript'])
+      setItemTags(db, userId, 'item_test', ['React', 'TypeScript'])
 
-      const react = db.prepare('SELECT item_count FROM tags WHERE name = ?').get('React') as { item_count: number }
+      const react = db
+        .prepare('SELECT item_count FROM tags WHERE user_id = ? AND name = ?')
+        .get(userId, 'React') as { item_count: number }
       expect(react.item_count).toBe(1)
     })
 
     it('should delete item_tags when setting empty array', () => {
-      setItemTags(db, 'item_test', ['React'])
-      setItemTags(db, 'item_test', [])
+      setItemTags(db, userId, 'item_test', ['React'])
+      setItemTags(db, userId, 'item_test', [])
 
       const tags = getItemTags(db, 'item_test')
       expect(tags).toEqual([])
@@ -79,17 +82,19 @@ describe('tags.db', () => {
 
       // Create another item
       db.prepare(`
-        INSERT INTO items (id, url, url_normalized, domain, status, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run('item_test2', 'https://example.com/2', 'https://example.com/2', 'example.com', 'pending', timestamp, timestamp)
+        INSERT INTO items (id, user_id, url, url_normalized, domain, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run('item_test2', userId, 'https://example.com/2', 'https://example.com/2', 'example.com', 'pending', timestamp, timestamp)
 
       // Set tags for both items
-      setItemTags(db, 'item_test', ['React', 'TypeScript', 'Frontend'])
-      setItemTags(db, 'item_test2', ['Vue', 'JavaScript'])
+      setItemTags(db, userId, 'item_test', ['React', 'TypeScript', 'Frontend'])
+      setItemTags(db, userId, 'item_test2', ['Vue', 'JavaScript'])
 
       // Verify initial counts
       const getCount = (name: string) => {
-        const result = db.prepare('SELECT item_count FROM tags WHERE name = ?').get(name) as { item_count: number } | undefined
+        const result = db
+          .prepare('SELECT item_count FROM tags WHERE user_id = ? AND name = ?')
+          .get(userId, name) as { item_count: number } | undefined
         return result?.item_count ?? 0
       }
 
@@ -102,7 +107,7 @@ describe('tags.db', () => {
       // Update item_test tags: React, TypeScript, Frontend → React, Vue, Backend
       // Affected tags: React (old+new), TypeScript (old only), Frontend (old only), Vue (new only), Backend (new only)
       // Unaffected: JavaScript (should stay 1)
-      setItemTags(db, 'item_test', ['React', 'Vue', 'Backend'])
+      setItemTags(db, userId, 'item_test', ['React', 'Vue', 'Backend'])
 
       // Verify counts after update
       expect(getCount('React')).toBe(1)      // Kept
@@ -121,7 +126,7 @@ describe('tags.db', () => {
     })
 
     it('should return sorted tag names', () => {
-      setItemTags(db, 'item_test', ['Vue', 'React', 'Angular'])
+      setItemTags(db, userId, 'item_test', ['Vue', 'React', 'Angular'])
       const tags = getItemTags(db, 'item_test')
       expect(tags).toEqual(['Angular', 'React', 'Vue'])
     })
@@ -129,30 +134,30 @@ describe('tags.db', () => {
 
   describe('getAllTagNames', () => {
     it('should return empty array if no tags', () => {
-      const tags = getAllTagNames(db)
+      const tags = getAllTagNames(db, userId)
       expect(tags).toEqual([])
     })
 
     it('should return all tag names sorted', () => {
-      findOrCreateTag(db, 'Vue')
-      findOrCreateTag(db, 'React')
-      findOrCreateTag(db, 'Angular')
+      findOrCreateTag(db, userId, 'Vue')
+      findOrCreateTag(db, userId, 'React')
+      findOrCreateTag(db, userId, 'Angular')
 
-      const tags = getAllTagNames(db)
+      const tags = getAllTagNames(db, userId)
       expect(tags).toEqual(['Angular', 'React', 'Vue'])
     })
   })
 
   describe('listTags', () => {
     it('should return empty array if no tags', () => {
-      const tags = listTags(db)
+      const tags = listTags(db, userId)
       expect(tags).toEqual([])
     })
 
     it('should return tags with metadata', () => {
-      setItemTags(db, 'item_test', ['React', 'TypeScript'])
+      setItemTags(db, userId, 'item_test', ['React', 'TypeScript'])
 
-      const tags = listTags(db)
+      const tags = listTags(db, userId)
       expect(tags).toHaveLength(2)
       expect(tags[0]).toMatchObject({
         id: expect.stringMatching(/^tag_/),
@@ -165,14 +170,14 @@ describe('tags.db', () => {
     it('should sort by item_count desc then name asc', () => {
       const timestamp = new Date().toISOString()
       db.prepare(`
-        INSERT INTO items (id, url, url_normalized, domain, status, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run('item_test2', 'https://example.com/2', 'https://example.com/2', 'example.com', 'pending', timestamp, timestamp)
+        INSERT INTO items (id, user_id, url, url_normalized, domain, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run('item_test2', userId, 'https://example.com/2', 'https://example.com/2', 'example.com', 'pending', timestamp, timestamp)
 
-      setItemTags(db, 'item_test', ['React', 'Vue'])
-      setItemTags(db, 'item_test2', ['React'])
+      setItemTags(db, userId, 'item_test', ['React', 'Vue'])
+      setItemTags(db, userId, 'item_test2', ['React'])
 
-      const tags = listTags(db)
+      const tags = listTags(db, userId)
       expect(tags[0].name).toBe('React')
       expect(tags[0].item_count).toBe(2)
       expect(tags[1].name).toBe('Vue')

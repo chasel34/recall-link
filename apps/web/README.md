@@ -73,6 +73,17 @@ src/
 - 🗑️ Delete items with confirmation
 - 📱 Responsive design (mobile/tablet/desktop)
 
+## Authentication
+
+The web app uses cookie-based auth (HttpOnly session cookie) via the API.
+
+Routes:
+
+- `/login` - Login
+- `/register` - Register
+
+Make sure your API CORS allows credentials (see `apps/api/README.md`).
+
 ## Routes
 
 - `/` - Redirects to /items

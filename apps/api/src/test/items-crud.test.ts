@@ -3,14 +3,19 @@ import { app } from '../app.js'
 import Database from 'better-sqlite3'
 import { applySchema, defaultSchemaPath } from '../db/client.js'
 import { setDb, closeDb } from '../db/context.js'
+import { registerTestUser } from './test-auth.js'
 
 describe('Items CRUD Integration Tests', () => {
   let db: Database.Database
+  let cookie: string
 
-  beforeEach(() => {
+  beforeEach(async () => {
     db = new Database(':memory:')
     applySchema(db, defaultSchemaPath())
     setDb(db)
+
+    const auth = await registerTestUser(app)
+    cookie = auth.cookie
   })
 
   afterEach(() => {
@@ -19,7 +24,7 @@ describe('Items CRUD Integration Tests', () => {
 
   describe('GET /api/items', () => {
     it('should return empty list', async () => {
-      const res = await app.request('/api/items')
+      const res = await app.request('/api/items', { headers: { Cookie: cookie } })
       expect(res.status).toBe(200)
       const data = await res.json()
       expect(data.items).toEqual([])
@@ -30,12 +35,12 @@ describe('Items CRUD Integration Tests', () => {
       for (let i = 1; i <= 3; i += 1) {
         await app.request('/api/items', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', Cookie: cookie },
           body: JSON.stringify({ url: `https://example.com/${i}` }),
         })
       }
 
-      const res = await app.request('/api/items?limit=2&offset=0')
+      const res = await app.request('/api/items?limit=2&offset=0', { headers: { Cookie: cookie } })
       expect(res.status).toBe(200)
       const data = await res.json()
       expect(data.items).toHaveLength(2)
@@ -45,14 +50,14 @@ describe('Items CRUD Integration Tests', () => {
     it('should filter by status', async () => {
       const res1 = await app.request('/api/items', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Cookie: cookie },
         body: JSON.stringify({ url: 'https://example.com/1' }),
       })
       const item1 = await res1.json()
 
       db.prepare('UPDATE items SET status = ? WHERE id = ?').run('completed', item1.id)
 
-      const res = await app.request('/api/items?status=completed')
+      const res = await app.request('/api/items?status=completed', { headers: { Cookie: cookie } })
       expect(res.status).toBe(200)
       const data = await res.json()
       expect(data.items).toHaveLength(1)
@@ -62,17 +67,17 @@ describe('Items CRUD Integration Tests', () => {
     it('should filter by domain', async () => {
       await app.request('/api/items', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Cookie: cookie },
         body: JSON.stringify({ url: 'https://example.com/1' }),
       })
 
       await app.request('/api/items', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Cookie: cookie },
         body: JSON.stringify({ url: 'https://other.com/1' }),
       })
 
-      const res = await app.request('/api/items?domain=example.com')
+      const res = await app.request('/api/items?domain=example.com', { headers: { Cookie: cookie } })
       expect(res.status).toBe(200)
       const data = await res.json()
       expect(data.items).toHaveLength(1)
@@ -82,7 +87,7 @@ describe('Items CRUD Integration Tests', () => {
     it('should sort by created_at asc', async () => {
       await app.request('/api/items', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Cookie: cookie },
         body: JSON.stringify({ url: 'https://example.com/1' }),
       })
 
@@ -90,11 +95,11 @@ describe('Items CRUD Integration Tests', () => {
 
       await app.request('/api/items', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Cookie: cookie },
         body: JSON.stringify({ url: 'https://example.com/2' }),
       })
 
-      const res = await app.request('/api/items?sort_by=created_at&sort_order=asc')
+      const res = await app.request('/api/items?sort_by=created_at&sort_order=asc', { headers: { Cookie: cookie } })
       expect(res.status).toBe(200)
       const data = await res.json()
       expect(data.items[0].url).toBe('https://example.com/1')
@@ -106,12 +111,12 @@ describe('Items CRUD Integration Tests', () => {
     it('should return item by id', async () => {
       const createRes = await app.request('/api/items', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Cookie: cookie },
         body: JSON.stringify({ url: 'https://example.com' }),
       })
       const created = await createRes.json()
 
-      const res = await app.request(`/api/items/${created.id}`)
+      const res = await app.request(`/api/items/${created.id}`, { headers: { Cookie: cookie } })
       expect(res.status).toBe(200)
       const data = await res.json()
       expect(data.id).toBe(created.id)
@@ -119,7 +124,7 @@ describe('Items CRUD Integration Tests', () => {
     })
 
     it('should return 404 for non-existent item', async () => {
-      const res = await app.request('/api/items/item_nonexistent')
+      const res = await app.request('/api/items/item_nonexistent', { headers: { Cookie: cookie } })
       expect(res.status).toBe(404)
       const data = await res.json()
       expect(data.error).toBe('NOT_FOUND')
@@ -130,14 +135,14 @@ describe('Items CRUD Integration Tests', () => {
     it('should update summary', async () => {
       const createRes = await app.request('/api/items', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Cookie: cookie },
         body: JSON.stringify({ url: 'https://example.com' }),
       })
       const created = await createRes.json()
 
       const res = await app.request(`/api/items/${created.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Cookie: cookie },
         body: JSON.stringify({ summary: 'My summary' }),
       })
       expect(res.status).toBe(200)
@@ -149,14 +154,14 @@ describe('Items CRUD Integration Tests', () => {
     it('should update tags', async () => {
       const createRes = await app.request('/api/items', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Cookie: cookie },
         body: JSON.stringify({ url: 'https://example.com' }),
       })
       const created = await createRes.json()
 
       const res = await app.request(`/api/items/${created.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Cookie: cookie },
         body: JSON.stringify({ tags: ['react', 'typescript'] }),
       })
       expect(res.status).toBe(200)
@@ -167,14 +172,14 @@ describe('Items CRUD Integration Tests', () => {
     it('should update note', async () => {
       const createRes = await app.request('/api/items', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Cookie: cookie },
         body: JSON.stringify({ url: 'https://example.com' }),
       })
       const created = await createRes.json()
 
       const res = await app.request(`/api/items/${created.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Cookie: cookie },
         body: JSON.stringify({ note: 'Read later' }),
       })
       expect(res.status).toBe(200)
@@ -185,7 +190,7 @@ describe('Items CRUD Integration Tests', () => {
     it('should return 404 for non-existent item', async () => {
       const res = await app.request('/api/items/item_nonexistent', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Cookie: cookie },
         body: JSON.stringify({ note: 'Test' }),
       })
       expect(res.status).toBe(404)
@@ -196,25 +201,27 @@ describe('Items CRUD Integration Tests', () => {
     it('should delete item and associated jobs', async () => {
       const createRes = await app.request('/api/items', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Cookie: cookie },
         body: JSON.stringify({ url: 'https://example.com' }),
       })
       const created = await createRes.json()
 
       const res = await app.request(`/api/items/${created.id}`, {
         method: 'DELETE',
+        headers: { Cookie: cookie },
       })
       expect(res.status).toBe(200)
       const data = await res.json()
       expect(data.message).toBe('Item deleted')
 
-      const getRes = await app.request(`/api/items/${created.id}`)
+      const getRes = await app.request(`/api/items/${created.id}`, { headers: { Cookie: cookie } })
       expect(getRes.status).toBe(404)
     })
 
     it('should return 404 for non-existent item', async () => {
       const res = await app.request('/api/items/item_nonexistent', {
         method: 'DELETE',
+        headers: { Cookie: cookie },
       })
       expect(res.status).toBe(404)
     })

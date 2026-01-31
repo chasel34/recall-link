@@ -4,6 +4,7 @@ import { deleteItemFts, replaceItemFts } from './items.fts.js'
 
 export type Item = {
   id: string
+  user_id: string | null
   url: string
   url_normalized: string
   title: string | null
@@ -41,8 +42,10 @@ export type Job = {
 /**
  * Find item by normalized URL
  */
-export function findItemByNormalizedUrl(db: Database, normalizedUrl: string): Item | null {
-  const item = db.prepare('SELECT * FROM items WHERE url_normalized = ?').get(normalizedUrl) as Item | undefined
+export function findItemByNormalizedUrl(db: Database, userId: string, normalizedUrl: string): Item | null {
+  const item = db
+    .prepare('SELECT * FROM items WHERE user_id = ? AND url_normalized = ?')
+    .get(userId, normalizedUrl) as Item | undefined
   return item ?? null
 }
 
@@ -54,6 +57,7 @@ export function createItemWithJob(
   data: {
     itemId: string
     jobId: string
+    userId: string
     url: string
     urlNormalized: string
     domain: string
@@ -62,10 +66,11 @@ export function createItemWithJob(
 ): { itemId: string; jobId: string } {
   return db.transaction(() => {
     db.prepare(`
-      INSERT INTO items (id, url, url_normalized, domain, status, created_at, updated_at)
-      VALUES (?, ?, ?, ?, 'pending', ?, ?)
+      INSERT INTO items (id, user_id, url, url_normalized, domain, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)
     `).run(
       data.itemId,
+      data.userId,
       data.url,
       data.urlNormalized,
       data.domain,
@@ -107,7 +112,7 @@ export type ListItemsResult = {
 /**
  * List items with pagination, filtering, and sorting
  */
-export function listItems(db: Database, filters: ListItemsFilters = {}): ListItemsResult {
+export function listItems(db: Database, userId: string, filters: ListItemsFilters = {}): ListItemsResult {
   const {
     status,
     domain,
@@ -121,6 +126,9 @@ export function listItems(db: Database, filters: ListItemsFilters = {}): ListIte
 
   const conditions: string[] = []
   const params: Array<string | number> = []
+
+  conditions.push('user_id = ?')
+  params.push(userId)
 
   if (status) {
     conditions.push('status = ?')
@@ -166,6 +174,7 @@ export function listItems(db: Database, filters: ListItemsFilters = {}): ListIte
 
 export function listItemsByTags(
   db: Database,
+  userId: string,
   tagNames: string[],
   filters: ListItemsFilters = {}
 ): ListItemsResult {
@@ -182,6 +191,9 @@ export function listItemsByTags(
 
   const conditions: string[] = []
   const params: Array<string | number> = []
+
+  conditions.push('i.user_id = ?')
+  params.push(userId)
 
   if (status) {
     conditions.push('i.status = ?')
@@ -204,7 +216,8 @@ export function listItemsByTags(
   }
 
   const tagPlaceholders = tagNames.map(() => '?').join(',')
-  params.push(...tagNames)
+  conditions.push(`t.user_id = ?`)
+  params.push(userId)
 
   const whereClause = conditions.length > 0 ? `AND ${conditions.join(' AND ')}` : ''
 
@@ -216,7 +229,7 @@ export function listItemsByTags(
     WHERE t.name IN (${tagPlaceholders})
     ${whereClause}
   `
-  const { count } = db.prepare(countSql).get(...params) as { count: number }
+  const { count } = db.prepare(countSql).get(...tagNames, ...params) as { count: number }
 
   const validSortBy = ['created_at', 'updated_at', 'domain'].includes(sort_by) ? sort_by : 'created_at'
   const validSortOrder = sort_order === 'asc' ? 'ASC' : 'DESC'
@@ -231,7 +244,7 @@ export function listItemsByTags(
     ORDER BY i.${validSortBy} ${validSortOrder}
     LIMIT ? OFFSET ?
   `
-  const items = db.prepare(itemsSql).all(...params, limit, offset) as Item[]
+  const items = db.prepare(itemsSql).all(...tagNames, ...params, limit, offset) as Item[]
 
   return { items, total: count }
 }
@@ -244,6 +257,13 @@ export function getItemById(db: Database, id: string): Item | null {
   return item ?? null
 }
 
+export function getItemByIdForUser(db: Database, userId: string, id: string): Item | null {
+  const item = db
+    .prepare('SELECT * FROM items WHERE id = ? AND user_id = ?')
+    .get(id, userId) as Item | undefined
+  return item ?? null
+}
+
 export type UpdateItemData = {
   summary?: string
   tags?: string[]
@@ -253,7 +273,7 @@ export type UpdateItemData = {
 /**
  * Update item fields (user editable)
  */
-export function updateItem(db: Database, id: string, updates: UpdateItemData): { changes: number } {
+export function updateItem(db: Database, userId: string, id: string, updates: UpdateItemData): { changes: number } {
   return db.transaction(() => {
     const sets: string[] = []
     const params: Array<string | number> = []
@@ -270,7 +290,7 @@ export function updateItem(db: Database, id: string, updates: UpdateItemData): {
 
     // Sync item_tags table when tags are updated
     if (updates.tags !== undefined) {
-      setItemTags(db, id, updates.tags)
+      setItemTags(db, userId, id, updates.tags)
     }
 
     if (sets.length === 0) {

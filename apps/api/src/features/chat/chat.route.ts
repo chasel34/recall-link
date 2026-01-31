@@ -20,15 +20,13 @@ import {
 } from './chat.db.js'
 import { retrieveChatSources } from './chat.retrieval.js'
 import { streamChatAnswer } from './chat.llm.js'
+import { getAuthUser, requireAuth } from '../auth/auth.middleware.js'
 
 export const chatApp = new Hono()
 
-const DEBUG_CHAT = process.env.DEBUG_CHAT === '1'
+chatApp.use('*', requireAuth)
 
-function defaultUserId(): string | null {
-  // Single-user prototype. Multi-user TODO: derive from auth context.
-  return null
-}
+const DEBUG_CHAT = process.env.DEBUG_CHAT === '1'
 
 function deriveTitleFromMessage(message: string): string {
   const trimmed = message.trim().replace(/\s+/g, ' ')
@@ -39,6 +37,7 @@ function deriveTitleFromMessage(message: string): string {
 chatApp.post('/sessions', zValidator('json', createChatSessionSchema), (c) => {
   const db = getDb()
   const body = c.req.valid('json')
+  const userId = getAuthUser(c).id
 
   const now = new Date().toISOString()
   const sessionId = generateId('chat')
@@ -46,7 +45,7 @@ chatApp.post('/sessions', zValidator('json', createChatSessionSchema), (c) => {
   const session = createChatSession(db, {
     id: sessionId,
     title: body.title,
-    user_id: defaultUserId(),
+    user_id: userId,
     now,
   })
 
@@ -55,11 +54,12 @@ chatApp.post('/sessions', zValidator('json', createChatSessionSchema), (c) => {
 
 chatApp.get('/sessions', zValidator('query', listChatSessionsQuerySchema), (c) => {
   const db = getDb()
+  const userId = getAuthUser(c).id
   const q = c.req.valid('query')
   const limit = q.limit ?? 50
   const offset = q.offset ?? 0
 
-  const result = listChatSessions(db, { limit, offset, user_id: defaultUserId() })
+  const result = listChatSessions(db, { limit, offset, user_id: userId })
 
   return c.json({
     sessions: result.sessions,
@@ -71,10 +71,11 @@ chatApp.get('/sessions', zValidator('query', listChatSessionsQuerySchema), (c) =
 
 chatApp.get('/sessions/:id/messages', zValidator('query', listChatMessagesQuerySchema), (c) => {
   const db = getDb()
+  const userId = getAuthUser(c).id
   const sessionId = c.req.param('id')
 
   const session = getChatSessionById(db, sessionId)
-  if (!session) {
+  if (!session || session.user_id !== userId) {
     return c.json({ error: 'NOT_FOUND', message: 'Session not found' }, 404)
   }
 
@@ -85,15 +86,15 @@ chatApp.get('/sessions/:id/messages', zValidator('query', listChatMessagesQueryS
 
 chatApp.post('/sessions/:id/messages', zValidator('json', chatRequestSchema), (c) => {
   const db = getDb()
+  const userId = getAuthUser(c).id
   const sessionId = c.req.param('id')
   const session = getChatSessionById(db, sessionId)
-  if (!session) {
+  if (!session || session.user_id !== userId) {
     return c.json({ error: 'NOT_FOUND', message: 'Session not found' }, 404)
   }
 
   const body = c.req.valid('json')
   const now = new Date().toISOString()
-  const userId = defaultUserId()
 
   // Persist user message immediately.
   const userMessageId = generateId('msg')
@@ -114,7 +115,7 @@ chatApp.post('/sessions/:id/messages', zValidator('json', chatRequestSchema), (c
     touchChatSession(db, sessionId, now)
   }
 
-  const sources = retrieveChatSources(db, body.message)
+  const sources = retrieveChatSources(db, userId, body.message)
   const assistantMessageId = generateId('msg')
 
   if (DEBUG_CHAT) {

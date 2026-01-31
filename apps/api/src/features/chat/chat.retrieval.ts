@@ -27,6 +27,7 @@ function toFtsQuery(userQuery: string): string {
 
 export function retrieveChatSources(
   db: Database,
+  userId: string,
   userQuery: string,
   opts: { limit?: number; snippetChars?: number } = {}
 ): ChatSource[] {
@@ -47,13 +48,13 @@ export function retrieveChatSources(
         `
           SELECT i.id as item_id, i.url, i.title, i.clean_text
           FROM items i
-          JOIN items_fts fts ON i.id = fts.item_id
-          WHERE items_fts MATCH ?
+          JOIN items_fts ON i.id = items_fts.item_id
+          WHERE i.user_id = ? AND items_fts MATCH ?
           ORDER BY rank
           LIMIT ?
         `
       )
-      .all(ftsQuery, limit) as Array<{
+      .all(userId, ftsQuery, limit) as Array<{
       item_id: string
       url: string
       title: string | null
