@@ -1,11 +1,5 @@
 import type { Database } from 'better-sqlite3'
-
-export type ChatSource = {
-  item_id: string
-  url: string
-  title: string | null
-  snippet: string
-}
+import type { ChatSource } from '@recall-link/ai'
 
 const DEBUG_CHAT = process.env.DEBUG_CHAT === '1'
 

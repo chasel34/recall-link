@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import Database from 'better-sqlite3'
 import { applySchema, defaultSchemaPath } from '../../db/client.js'
-import { acquireJob, completeJob, failJob, retryJob, updateItemContent } from './jobs.db.js'
+import { acquireJob, completeJob, failJob, retryJob } from '@recall-link/jobs'
+import { updateItemContent } from './jobs.db.js'
 
 describe('jobs.db', () => {
   let db: Database.Database
