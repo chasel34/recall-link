@@ -68,6 +68,9 @@ describe('processFetchJob', () => {
     await processFetchJob(db, job)
 
     const item = db.prepare('SELECT * FROM items WHERE id = ?').get('item_test') as any
+    const aiJob = db
+      .prepare("SELECT * FROM jobs WHERE item_id = ? AND type = 'ai_process'")
+      .get('item_test') as any
     expect(item.title).toBe('Test Article')
     expect(item.clean_text).toContain('main content')
     expect(item.clean_html).toContain('<a')
@@ -78,6 +81,44 @@ describe('processFetchJob', () => {
     expect(item.clean_html).not.toContain('<img')
     expect(item.status).toBe('completed')
     expect(item.processed_at).toBeTruthy()
+    expect(aiJob).toBeTruthy()
+  })
+
+  it('should skip ai_process when ai_mode is local', async () => {
+    db.prepare('UPDATE items SET ai_mode = ? WHERE id = ?').run('local', 'item_test')
+
+    vi.mocked(handleFetch).mockResolvedValue({
+      title: 'Local Article',
+      clean_text: 'Local mode content.',
+      clean_html: '<article><p>Local mode content.</p></article>',
+    })
+
+    const job: Job = {
+      id: 'job_local_test',
+      item_id: 'item_test',
+      type: 'fetch',
+      state: 'pending',
+      attempt: 0,
+      run_after: new Date().toISOString(),
+      locked_by: 'worker_1',
+      lock_expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+      last_error_code: null,
+      last_error_message: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      started_at: new Date().toISOString(),
+      finished_at: null,
+    }
+
+    await processFetchJob(db, job)
+
+    const aiJob = db
+      .prepare("SELECT * FROM jobs WHERE item_id = ? AND type = 'ai_process'")
+      .get('item_test') as any
+    const item = db.prepare('SELECT * FROM items WHERE id = ?').get('item_test') as any
+
+    expect(item.status).toBe('completed')
+    expect(aiJob).toBeUndefined()
   })
 
   it('should handle HTTP errors', async () => {

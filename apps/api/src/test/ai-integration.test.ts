@@ -3,6 +3,7 @@ import { app } from '../app.js'
 import Database from 'better-sqlite3'
 import { applySchema, defaultSchemaPath } from '../db/client.js'
 import { setDb, closeDb } from '../db/context.js'
+import { subscribeEvents } from '../features/events/events.bus.js'
 import { registerTestUser } from './test-auth.js'
 
 vi.mock('@recall-link/jobs-handlers', () => ({
@@ -66,6 +67,41 @@ describe('AI Processing Integration Tests', () => {
       expect(job.item_id).toBe('item_test')
     })
 
+    it('should return 409 if item uses local ai mode', async () => {
+      const timestamp = new Date().toISOString()
+      db.prepare(
+        `
+          INSERT INTO items (id, user_id, url, url_normalized, domain, status, clean_text, ai_mode, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `
+      ).run(
+        'item_local',
+        userId,
+        'https://example.com/local',
+        'https://example.com/local',
+        'example.com',
+        'completed',
+        'Local content',
+        'local',
+        timestamp,
+        timestamp
+      )
+
+      const res = await app.request('/api/items/item_local/analyze', {
+        method: 'POST',
+        headers: { Cookie: cookie },
+      })
+
+      expect(res.status).toBe(409)
+      const data = await res.json()
+      expect(data.error).toBe('LOCAL_AI_ENABLED')
+
+      const jobCount = db
+        .prepare("SELECT COUNT(*) as count FROM jobs WHERE item_id = ? AND type = 'ai_process'")
+        .get('item_local') as { count: number }
+      expect(jobCount.count).toBe(0)
+    })
+
     it('should return 404 if item not found', async () => {
       const res = await app.request('/api/items/item_nonexistent/analyze', {
         method: 'POST',
@@ -92,6 +128,75 @@ describe('AI Processing Integration Tests', () => {
       expect(res.status).toBe(400)
       const data = await res.json()
       expect(data.error).toBe('NO_CONTENT')
+    })
+  })
+
+  describe('POST /api/items/:id/apply-ai', () => {
+    it('should persist local AI results and publish event', async () => {
+      const timestamp = new Date().toISOString()
+      db.prepare(
+        `
+          INSERT INTO items (id, user_id, url, url_normalized, domain, status, ai_mode, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `
+      ).run(
+        'item_local_ai',
+        userId,
+        'https://example.com/local-ai',
+        'https://example.com/local-ai',
+        'example.com',
+        'completed',
+        'local',
+        timestamp,
+        timestamp
+      )
+
+      const events: Array<{ type: string; data?: any }> = []
+      const unsubscribe = subscribeEvents((event) => {
+        events.push(event)
+      })
+
+      const res = await app.request('/api/items/item_local_ai/apply-ai', {
+        method: 'POST',
+        headers: {
+          Cookie: cookie,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          summary: 'Local AI summary',
+          tags: ['React', 'TypeScript'],
+        }),
+      })
+
+      unsubscribe()
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.summary).toBe('Local AI summary')
+      expect(data.tags).toEqual(['React', 'TypeScript'])
+
+      const item = db.prepare('SELECT summary, summary_source FROM items WHERE id = ?').get('item_local_ai') as {
+        summary: string
+        summary_source: string
+      }
+      expect(item.summary).toBe('Local AI summary')
+      expect(item.summary_source).toBe('ai')
+
+      const tagRows = db.prepare(
+        `
+          SELECT t.name
+          FROM tags t
+          JOIN item_tags it ON t.id = it.tag_id
+          WHERE it.item_id = ?
+          ORDER BY t.name ASC
+        `
+      ).all('item_local_ai') as Array<{ name: string }>
+      expect(tagRows.map((row) => row.name)).toEqual(['React', 'TypeScript'])
+
+      const itemEvent = events.find((event) => event.type === 'item.updated')
+      expect(itemEvent?.data?.source).toBe('ai')
+      expect(itemEvent?.data?.item?.id).toBe('item_local_ai')
+      expect(itemEvent?.data?.item?.tags).toEqual(['React', 'TypeScript'])
     })
   })
 

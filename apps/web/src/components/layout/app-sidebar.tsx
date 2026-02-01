@@ -5,6 +5,7 @@ import { ReactNode } from 'react'
 import React from 'react'
 import { apiClient } from '@/lib/api-client'
 import { queryClient } from '@/lib/query-client'
+import { clearAiSettingsOnLogout } from '@/hooks/ai-settings'
 
 interface AppSidebarProps {
   onItemClick?: () => void
@@ -22,7 +23,7 @@ export function AppSidebar({ onItemClick, children }: AppSidebarProps) {
   const menuItems = [
     { name: '记录', path: '/items', icon: FileText, disabled: false },
     { name: '对话', path: '/chat', icon: MessageSquare, disabled: false },
-    { name: '设置', path: '/settings', icon: Settings, disabled: true },
+    { name: '设置', path: '/settings', icon: Settings, disabled: false },
   ]
 
   return (
@@ -73,6 +74,7 @@ export function AppSidebar({ onItemClick, children }: AppSidebarProps) {
             } catch {
               // ignore
             } finally {
+              clearAiSettingsOnLogout()
               queryClient.clear()
               setIsLoggingOut(false)
               await navigate({ to: '/login', replace: true })

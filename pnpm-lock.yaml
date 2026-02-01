@@ -14,9 +14,6 @@ importers:
 
   apps/api:
     dependencies:
-      '@ai-sdk/google':
-        specifier: ^3.0.10
-        version: 3.0.10(zod@3.25.76)
       '@hono/node-server':
         specifier: ^1.13.0
         version: 1.19.9(hono@4.11.4)
@@ -35,9 +32,6 @@ importers:
       '@recall-link/jobs-handlers':
         specifier: workspace:*
         version: link:../../packages/jobs-handlers
-      ai:
-        specifier: ^6.0.41
-        version: 6.0.41(zod@3.25.76)
       better-sqlite3:
         specifier: ^11.0.0
         version: 11.10.0
@@ -75,6 +69,9 @@ importers:
       '@base-ui/react':
         specifier: ^1.1.0
         version: 1.1.0(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@recall-link/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
       '@tanstack/react-query':
         specifier: ^5.84.1
         version: 5.90.19(react@18.3.1)

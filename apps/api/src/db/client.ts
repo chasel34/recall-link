@@ -38,6 +38,7 @@ export function applySchema(db: Db, schemaFilePath: string) {
   migrateJobsItemIdUnique(db)
   migrateItemsCleanHtmlColumn(db)
   migrateItemsUserIdColumn(db)
+  migrateItemsAiModeColumn(db)
   migrateTagsUserIdColumn(db)
   migrateItemsUrlNormalizedUnique(db)
   migrateTagsNameUnique(db)
@@ -132,6 +133,16 @@ function migrateItemsUserIdColumn(db: Db): void {
 
   console.log('[db] Migrating items table: adding user_id column')
   db.exec(`ALTER TABLE items ADD COLUMN user_id TEXT`)
+}
+
+function migrateItemsAiModeColumn(db: Db): void {
+  if (!tableExists(db, 'items')) return
+  const columns = db.prepare(`PRAGMA table_info('items')`).all() as Array<{ name: string }>
+  const hasAiMode = columns.some((c) => c.name === 'ai_mode')
+  if (hasAiMode) return
+
+  console.log('[db] Migrating items table: adding ai_mode column')
+  db.exec(`ALTER TABLE items ADD COLUMN ai_mode TEXT`)
 }
 
 function migrateTagsUserIdColumn(db: Db): void {

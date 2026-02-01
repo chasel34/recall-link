@@ -10,6 +10,7 @@ export type Item = {
   title: string | null
   domain: string
   status: string
+  ai_mode: 'remote' | 'local' | null
   error_code: string | null
   error_message: string | null
   clean_text: string | null
@@ -62,18 +63,20 @@ export function createItemWithJob(
     urlNormalized: string
     domain: string
     timestamp: string
+    aiMode?: 'remote' | 'local'
   }
 ): { itemId: string; jobId: string } {
   return db.transaction(() => {
     db.prepare(`
-      INSERT INTO items (id, user_id, url, url_normalized, domain, status, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)
+      INSERT INTO items (id, user_id, url, url_normalized, domain, status, ai_mode, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)
     `).run(
       data.itemId,
       data.userId,
       data.url,
       data.urlNormalized,
       data.domain,
+      data.aiMode ?? 'remote',
       data.timestamp,
       data.timestamp
     )

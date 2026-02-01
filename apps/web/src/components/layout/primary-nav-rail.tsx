@@ -3,6 +3,7 @@ import { FileText, MessageSquare, Settings, Command, LogOut } from 'lucide-react
 import { Button, Tooltip } from "@/components/base"
 import { apiClient } from '@/lib/api-client'
 import { queryClient } from '@/lib/query-client'
+import { clearAiSettingsOnLogout } from '@/hooks/ai-settings'
 import React from 'react'
 
 interface PrimaryNavRailProps {
@@ -20,7 +21,7 @@ export function PrimaryNavRail({ className }: PrimaryNavRailProps) {
   const menuItems = [
     { name: '记录', path: '/items', icon: FileText, disabled: false },
     { name: '对话', path: '/chat', icon: MessageSquare, disabled: false },
-    { name: '设置', path: '/settings', icon: Settings, disabled: true },
+    { name: '设置', path: '/settings', icon: Settings, disabled: false },
   ]
 
   return (
@@ -85,6 +86,7 @@ export function PrimaryNavRail({ className }: PrimaryNavRailProps) {
                 } catch {
                   // ignore
                 } finally {
+                  clearAiSettingsOnLogout()
                   queryClient.clear()
                   setIsLoggingOut(false)
                   await navigate({ to: '/login', replace: true })

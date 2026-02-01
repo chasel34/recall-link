@@ -39,6 +39,30 @@ function parseSse(body: string): Array<{ event: string; data: string }> {
   })
 }
 
+function seedSearchableItem(db: Database.Database, userId: string): void {
+  db.prepare(
+    `
+      INSERT INTO items (id, user_id, url, url_normalized, domain, title, status, clean_text, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `
+  ).run(
+    'item_test',
+    userId,
+    'https://example.com/react',
+    'https://example.com/react',
+    'example.com',
+    'React Tutorial',
+    'completed',
+    'React hooks are powerful',
+    '2024-01-20T10:00:00Z',
+    '2024-01-20T10:00:00Z'
+  )
+  db.exec(`
+    INSERT INTO items_fts (item_id, title, summary, tags, clean_text)
+    VALUES ('item_test', 'React Tutorial', '', '', 'React hooks are powerful')
+  `)
+}
+
 describe('chat routes', () => {
   let db: Database.Database
   let cookie: string
@@ -78,27 +102,7 @@ describe('chat routes', () => {
 
   it('streams assistant response and persists messages', async () => {
     // Insert a searchable item + fts row so sources is non-empty.
-    db.prepare(
-      `
-        INSERT INTO items (id, user_id, url, url_normalized, domain, title, status, clean_text, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `
-    ).run(
-      'item_test',
-      userId,
-      'https://example.com/react',
-      'https://example.com/react',
-      'example.com',
-      'React Tutorial',
-      'completed',
-      'React hooks are powerful',
-      '2024-01-20T10:00:00Z',
-      '2024-01-20T10:00:00Z'
-    )
-    db.exec(`
-      INSERT INTO items_fts (item_id, title, summary, tags, clean_text)
-      VALUES ('item_test', 'React Tutorial', '', '', 'React hooks are powerful')
-    `)
+    seedSearchableItem(db, userId)
 
     const create = await app.request('/api/chat/sessions', {
       method: 'POST',
@@ -139,5 +143,54 @@ describe('chat routes', () => {
     expect(messagesBody.messages[0].role).toBe('user')
     expect(messagesBody.messages[1].role).toBe('assistant')
     expect(messagesBody.messages[1].content).toBe('Hello world')
+  })
+
+  it('prepares local chat and persists assistant message', async () => {
+    seedSearchableItem(db, userId)
+
+    const create = await app.request('/api/chat/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
+      body: JSON.stringify({}),
+    })
+    const session = await create.json()
+
+    const prepare = await app.request(`/api/chat/sessions/${session.id}/messages/local`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
+      body: JSON.stringify({ message: 'react hooks' }),
+    })
+
+    expect(prepare.status).toBe(200)
+    const prepareBody = await prepare.json()
+    expect(prepareBody.meta.session_id).toBe(session.id)
+    expect(prepareBody.meta.user_message_id).toMatch(/^msg_/)
+    expect(prepareBody.meta.assistant_message_id).toMatch(/^msg_/)
+    expect(Array.isArray(prepareBody.meta.sources)).toBe(true)
+    expect(prepareBody.meta.sources.length).toBeGreaterThan(0)
+    expect(Array.isArray(prepareBody.history)).toBe(true)
+    expect(prepareBody.history.length).toBe(0)
+
+    const persist = await app.request(`/api/chat/sessions/${session.id}/messages/local/assistant`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
+      body: JSON.stringify({
+        assistant_message_id: prepareBody.meta.assistant_message_id,
+        content: 'Local answer',
+        meta_json: JSON.stringify({ sources: prepareBody.meta.sources }),
+      }),
+    })
+
+    expect(persist.status).toBe(200)
+    const persistBody = await persist.json()
+    expect(persistBody.ok).toBe(true)
+
+    const messagesRes = await app.request(`/api/chat/sessions/${session.id}/messages`, { headers: { Cookie: cookie } })
+    expect(messagesRes.status).toBe(200)
+    const messagesBody = await messagesRes.json()
+    expect(messagesBody.messages.length).toBe(2)
+    expect(messagesBody.messages[0].role).toBe('user')
+    expect(messagesBody.messages[1].role).toBe('assistant')
+    expect(messagesBody.messages[1].content).toBe('Local answer')
   })
 })

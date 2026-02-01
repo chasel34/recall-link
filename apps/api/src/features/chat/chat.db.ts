@@ -125,6 +125,30 @@ export function insertChatMessage(
   }
 }
 
+export function upsertChatMessage(
+  db: Database,
+  data: {
+    id: string
+    session_id: string
+    role: ChatMessageRole
+    content: string
+    meta_json?: string | null
+    user_id?: string | null
+    now: string
+  }
+): void {
+  const metaJson = data.meta_json ?? null
+  const userId = data.user_id ?? null
+
+  db.prepare(
+    `
+      INSERT INTO chat_messages (id, session_id, user_id, role, content, meta_json, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET content = excluded.content, meta_json = excluded.meta_json
+    `
+  ).run(data.id, data.session_id, userId, data.role, data.content, metaJson, data.now)
+}
+
 export function listChatMessages(
   db: Database,
   sessionId: string,

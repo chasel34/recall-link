@@ -1,12 +1,16 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { Sparkles } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
-import { apiClient, ChatMessage } from "../../lib/api-client"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { apiClient, ChatMessage, ChatStreamMeta } from "../../lib/api-client"
 import { useChatMessages } from "../../hooks/use-chat-messages"
 import { useChatSessions } from "../../hooks/use-chat-sessions"
+import { useAiSettings } from "../../hooks/ai-settings"
+import { addToast } from "../../lib/toast"
 import { Composer } from "./composer"
 import { MessageList } from "./message-list"
+
+const DEFAULT_LOCAL_GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta'
 
 interface ChatContainerProps {
   sessionId?: string
@@ -22,6 +26,8 @@ export function ChatContainer({ sessionId, initialMessage }: ChatContainerProps)
   const streamingUserIdRef = useRef<string | null>(null)
   const streamingAssistantIdRef = useRef<string | null>(null)
   const isFirstRender = useRef(true)
+  const missingKeyToastShownRef = useRef(false)
+  const aiSettings = useAiSettings()
 
   // Fetch messages if sessionId exists
   const { data: historyData, isLoading: isLoadingHistory } = useChatMessages(sessionId || "")
@@ -39,15 +45,7 @@ export function ChatContainer({ sessionId, initialMessage }: ChatContainerProps)
       if (isStreaming || streamingUserIdRef.current || streamingAssistantIdRef.current) return
       setMessages(historyData.messages)
     }
-  }, [historyData])
-
-  // Handle initial message (handoff from new chat)
-  useEffect(() => {
-    if (sessionId && initialMessage && isFirstRender.current) {
-      isFirstRender.current = false
-      handleSend(initialMessage)
-    }
-  }, [sessionId, initialMessage])
+  }, [historyData, isStreaming])
 
   const createSessionMutation = useMutation({
     mutationFn: () => apiClient.createChatSession(),
@@ -64,7 +62,19 @@ export function ChatContainer({ sessionId, initialMessage }: ChatContainerProps)
     }
   }
 
-  const handleSend = async (content: string) => {
+  const handleSend = useCallback(async (content: string) => {
+
+    if (aiSettings.mode === 'local' && !aiSettings.gemini.apiKey?.trim()) {
+      if (!missingKeyToastShownRef.current) {
+        missingKeyToastShownRef.current = true
+        addToast({
+          title: '缺少 API Key',
+          description: '需要配置 Gemini API Key 才能使用本地模式。',
+          color: 'danger',
+        })
+      }
+      return
+    }
 
     let currentSessionId = sessionId
 
@@ -115,52 +125,150 @@ export function ChatContainer({ sessionId, initialMessage }: ChatContainerProps)
     streamingAssistantIdRef.current = assistantMsgId
 
     try {
-        apiClient.sendChatMessageStream(currentSessionId, content, {
-          signal: abortControllerRef.current.signal,
-          onMeta: (meta) => {
-            if (meta.user_message_id && meta.assistant_message_id) {
-              streamingUserIdRef.current = meta.user_message_id
-              streamingAssistantIdRef.current = meta.assistant_message_id
-              setMessages(prev => prev.map(m => {
-                if (m.id === userMsgId) return { ...m, id: meta.user_message_id }
-                if (m.id === assistantMsgId) {
-                  return {
-                    ...m,
-                    id: meta.assistant_message_id,
+      if (aiSettings.mode === 'remote') {
+          apiClient.sendChatMessageStream(currentSessionId, content, {
+            signal: abortControllerRef.current.signal,
+            onMeta: (meta) => {
+              if (meta.user_message_id && meta.assistant_message_id) {
+                streamingUserIdRef.current = meta.user_message_id
+                streamingAssistantIdRef.current = meta.assistant_message_id
+                setMessages(prev => prev.map(m => {
+                  if (m.id === userMsgId) return { ...m, id: meta.user_message_id }
+                  if (m.id === assistantMsgId) {
+                    return {
+                      ...m,
+                      id: meta.assistant_message_id,
+                    }
                   }
-                }
-                return m
+                  return m
+                }))
+              }
+            },
+            onDelta: (delta) => {
+              const assistantId = streamingAssistantIdRef.current
+              if (!assistantId) return
+              setMessages(prev => prev.map(m => {
+                if (m.id !== assistantId) return m
+                return { ...m, content: m.content + delta }
               }))
+            },
+            onDone: () => {
+              setIsStreaming(false)
+              abortControllerRef.current = null
+              streamingUserIdRef.current = null
+              streamingAssistantIdRef.current = null
+              queryClient.invalidateQueries({ queryKey: ['chat', 'sessions'] })
+              queryClient.invalidateQueries({ queryKey: ['chat', 'messages', currentSessionId] })
+            },
+            onError: (err) => {
+              console.error("Streaming error", err)
+              setIsStreaming(false)
+              streamingUserIdRef.current = null
+              streamingAssistantIdRef.current = null
             }
+          })
+        return
+      }
+
+      let preparedMeta: ChatStreamMeta | null = null
+      let assistantContent = ''
+      let aborted = false
+
+      try {
+        const prepared = await apiClient.prepareLocalChatMessage(currentSessionId, content)
+        preparedMeta = prepared.meta
+        streamingUserIdRef.current = prepared.meta.user_message_id
+        streamingAssistantIdRef.current = prepared.meta.assistant_message_id
+        setMessages(prev => prev.map(m => {
+          if (m.id === userMsgId) return { ...m, id: prepared.meta.user_message_id }
+          if (m.id === assistantMsgId) {
+            return {
+              ...m,
+              id: prepared.meta.assistant_message_id,
+            }
+          }
+          return m
+        }))
+
+        const { streamChatAnswer } = await import('@recall-link/ai')
+
+        const stream = await streamChatAnswer(
+          {
+            question: content,
+            history: prepared.history,
+            sources: prepared.meta.sources,
+            signal: abortControllerRef.current.signal,
           },
-          onDelta: (delta) => {
-            const assistantId = streamingAssistantIdRef.current
-            if (!assistantId) return
-            setMessages(prev => prev.map(m => {
+          {
+            apiKey: aiSettings.gemini.apiKey.trim(),
+            model: aiSettings.gemini.model,
+            baseURL: aiSettings.gemini.baseURL?.trim() || DEFAULT_LOCAL_GEMINI_BASE_URL,
+          }
+        )
+
+        for await (const delta of stream) {
+          assistantContent += delta
+          const assistantId = streamingAssistantIdRef.current
+          if (!assistantId) continue
+          setMessages((prev) =>
+            prev.map((m) => {
               if (m.id !== assistantId) return m
               return { ...m, content: m.content + delta }
-            }))
-          },
-          onDone: () => {
-            setIsStreaming(false)
-            abortControllerRef.current = null
-            streamingUserIdRef.current = null
-            streamingAssistantIdRef.current = null
-            queryClient.invalidateQueries({ queryKey: ['chat', 'sessions'] })
-            queryClient.invalidateQueries({ queryKey: ['chat', 'messages', currentSessionId] })
-          },
-          onError: (err) => {
-            console.error("Streaming error", err)
-            setIsStreaming(false)
-            streamingUserIdRef.current = null
-            streamingAssistantIdRef.current = null
+            })
+          )
+        }
+
+        aborted = abortControllerRef.current?.signal.aborted ?? false
+      } catch (err) {
+        aborted = abortControllerRef.current?.signal.aborted ?? false
+        if (!aborted) {
+          console.error("Local streaming error", err)
+          addToast({
+            title: '本地 AI 出错',
+            description: '生成失败，请检查 API Key 和网络后重试。',
+            color: 'danger',
+          })
+        }
+      } finally {
+        setIsStreaming(false)
+        abortControllerRef.current = null
+        const assistantId = preparedMeta?.assistant_message_id
+        streamingUserIdRef.current = null
+        streamingAssistantIdRef.current = null
+
+        if (preparedMeta && assistantId && assistantContent.trim()) {
+          try {
+            await apiClient.persistLocalChatAssistantMessage(currentSessionId, {
+              assistant_message_id: assistantId,
+              content: assistantContent,
+              meta_json: JSON.stringify({
+                sources: preparedMeta.sources,
+                aborted,
+                provider: 'gemini',
+                mode: 'local',
+              }),
+            })
+          } catch (persistError) {
+            console.error('Failed to persist local assistant message', persistError)
           }
-        })
+        }
+
+        queryClient.invalidateQueries({ queryKey: ['chat', 'sessions'] })
+        queryClient.invalidateQueries({ queryKey: ['chat', 'messages', currentSessionId] })
+      }
     } catch (err) {
       console.error("Send error", err)
       setIsStreaming(false)
     }
-  }
+  }, [aiSettings, createSessionMutation, navigate, queryClient, sessionId])
+
+  // Handle initial message (handoff from new chat)
+  useEffect(() => {
+    if (sessionId && initialMessage && isFirstRender.current) {
+      isFirstRender.current = false
+      handleSend(initialMessage)
+    }
+  }, [sessionId, initialMessage, handleSend])
 
   return (
     <div className="flex flex-col h-full w-full min-h-0 bg-background">

@@ -9,6 +9,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@recall-link/ai': path.resolve(__dirname, '../../packages/ai/src/index.ts'),
     },
   },
   server: {

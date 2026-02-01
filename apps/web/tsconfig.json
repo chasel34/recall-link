@@ -16,7 +16,8 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@recall-link/ai": ["../../packages/ai/src/index.ts"]
     }
   },
   "include": ["src"],

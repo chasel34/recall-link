@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS items (
   title TEXT,
   domain TEXT,
   status TEXT NOT NULL,
+  ai_mode TEXT,
   error_code TEXT,
   error_message TEXT,
   clean_text TEXT,
