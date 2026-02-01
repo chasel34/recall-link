@@ -21,13 +21,16 @@ See per-area guides:
 ├── apps/
 │   ├── api/           # API + worker (port 8787)
 │   ├── web/           # Web UI (port 3000)
+├── packages/           # Shared workspace packages
+│   ├── ai/             # LLM calls (Gemini via ai-sdk)
+│   ├── content/         # URL fetch + extract
+│   ├── jobs/            # Job queue primitives
+│   └── jobs-handlers/   # Processor implementations for worker
 ├── docs/              # PRD + implementation plans
 ├── turbo.json
 ├── pnpm-workspace.yaml
 └── pnpm-lock.yaml
 ```
-
-Note: `pnpm-workspace.yaml` includes `packages/*`, but `packages/` is currently absent.
 
 ## Where To Look
 
@@ -38,11 +41,13 @@ Note: `pnpm-workspace.yaml` includes `packages/*`, but `packages/` is currently 
 | Save item flow | `apps/api/src/features/items/items.route.ts`, `apps/api/src/features/items/items.db.ts` | URL normalization + duplicate check + job enqueue |
 | DB schema + migrations | `apps/api/src/db/schema.sql`, `apps/api/src/db/client.ts` | `applySchema()` runs in phases + backfills FTS |
 | Worker + processors | `apps/api/src/queue/worker.ts`, `apps/api/src/queue/processors/*` | Job polling + `fetch` / `ai_process` |
+| Shared AI / jobs abstractions | `packages/*` | Reused by API worker and web local AI |
 | Web app entry | `apps/web/src/main.tsx` | Router + Query + Base UI providers |
 | Web routes | `apps/web/src/routes/*` | TanStack Router file routes (`createFileRoute`) |
 | Web data hooks | `apps/web/src/hooks/*` | React Query + (some) Zustand |
 | Web API client | `apps/web/src/lib/api-client.ts` | HTTP calls + mirrored response types |
 | Product requirements | `docs/prd.md` | Source-of-truth feature intent |
+| Local AI docs | `docs/local-ai.md` | Local vs remote AI wiring |
 
 ## Conventions (This Repo)
 
