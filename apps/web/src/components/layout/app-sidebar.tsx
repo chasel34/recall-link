@@ -23,7 +23,7 @@ export function AppSidebar({ onItemClick, children }: AppSidebarProps) {
   const menuItems = [
     { name: '记录', path: '/items', icon: FileText, disabled: false },
     { name: '对话', path: '/chat', icon: MessageSquare, disabled: false },
-    { name: '设置', path: '/settings', icon: Settings, disabled: false },
+    { name: '设置', path: '/settings/ai', icon: Settings, disabled: false },
   ]
 
   return (
