@@ -33,16 +33,16 @@ export function SessionsList({ currentSessionId, onNewChat }: SessionsListProps)
         </Button>
       </div>
       
-      <ScrollShadow className="flex-1 overflow-y-auto">
-        {isLoading ? (
-          <div className="p-5 space-y-2">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-14 rounded-2xl bg-muted/70 animate-pulse" />
-            ))}
-          </div>
-        ) : (
-          <div className="p-4">
-            <Listbox 
+       <ScrollShadow className="flex-1 overflow-y-auto">
+         {isLoading ? (
+           <div className="p-5 space-y-2">
+             {[1, 2, 3].map((i) => (
+              <div key={i} className="h-11 rounded-2xl bg-muted/70 animate-pulse" />
+             ))}
+           </div>
+         ) : (
+           <div className="p-4">
+             <Listbox 
               aria-label="Chat Sessions"
               variant="flat"
               disallowEmptySelection
@@ -50,7 +50,7 @@ export function SessionsList({ currentSessionId, onNewChat }: SessionsListProps)
               selectedKeys={currentSessionId ? [currentSessionId] : []}
               onAction={(key) => navigate({ to: `/chat/${key}` })}
                 classNames={{
-                list: "gap-2"
+                list: "gap-1"
               }}
             >
               {sessions.map((session) => (
@@ -58,7 +58,7 @@ export function SessionsList({ currentSessionId, onNewChat }: SessionsListProps)
                   key={session.id}
                   textValue={session.title || "新对话"}
                   className={cn(
-                    "p-4 rounded-2xl border border-transparent hover:border-border/60 hover:bg-card/60 transition-all",
+                    "px-4 py-2.5 rounded-2xl border border-transparent hover:border-border/60 hover:bg-card/60 transition-all",
                     currentSessionId === session.id
                       ? "bg-card shadow-[var(--shadow-card)] ring-1 ring-border/60 text-foreground"
                       : "text-muted-foreground"
