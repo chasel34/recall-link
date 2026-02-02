@@ -17,6 +17,7 @@
     "@recall-link/jobs": "workspace:*",
     "@recall-link/jobs-handlers": "workspace:*",
     "better-sqlite3": "^11.0.0",
+    "dotenv": "^17.2.3",
     "hono": "^4.6.0",
     "nanoid": "^5.1.6",
     "pino": "^9.6.0",
