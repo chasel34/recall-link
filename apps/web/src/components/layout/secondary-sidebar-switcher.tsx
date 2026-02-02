@@ -1,6 +1,7 @@
 import { useRouterState, useParams } from '@tanstack/react-router'
 import { ItemsTagSidebar } from '@/components/items/items-tag-sidebar'
 import { SessionsList } from '@/components/chat/sessions-list'
+import { SettingsSidebar } from '@/components/settings/settings-sidebar'
 import { cn } from '@/lib/utils'
 
 interface SecondarySidebarSwitcherProps {
@@ -48,6 +49,21 @@ export function SecondarySidebarSwitcher({ className }: SecondarySidebarSwitcher
         )}
       >
         <SessionsList currentSessionId={chatId} />
+      </div>
+    )
+  }
+
+  if (pathname.startsWith('/settings')) {
+    return (
+      <div
+        className={cn(
+          className
+            ? 'flex flex-col min-h-0 bg-sidebar/40'
+            : 'h-full w-80 border-r border-sidebar-border flex flex-col bg-sidebar/60 backdrop-blur-sm',
+          className
+        )}
+      >
+        <SettingsSidebar />
       </div>
     )
   }
