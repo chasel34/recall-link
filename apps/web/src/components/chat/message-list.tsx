@@ -7,6 +7,7 @@ import { ChatMessage } from "../../lib/api-client"
 import { cn } from "../../lib/utils"
 import { SourcesBlock, SourceItem } from "./inline-sources"
 import { Sparkles, User } from "lucide-react"
+import { TypingIndicator } from "./typing-indicator"
 
 interface MessageListProps {
   messages: ChatMessage[]
@@ -27,7 +28,7 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages.length, messages[messages.length - 1]?.content])
+  })
 
   const components = useMemo(() => ({
     sources: SourcesBlock as any,
@@ -57,7 +58,7 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
                 isUser ? "justify-end" : "justify-start"
               )}
             >
-              <div className="max-w-[88%]">
+              <div className="max-w-[92%] sm:max-w-[86%] lg:max-w-[72%] xl:max-w-[66%]">
                 <div
                   className={cn(
                     "flex items-center gap-3 mb-3",
@@ -97,14 +98,18 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
                     <div className="whitespace-pre-wrap font-medium">{msg.content}</div>
                   ) : (
                     <div className="prose prose-neutral dark:prose-invert max-w-none prose-sm prose-p:my-2 prose-pre:my-2 prose-headings:my-3 font-serif">
-                      <Streamdown
-                        isAnimating={isLast && isStreaming}
-                        components={components}
-                        rehypePlugins={rehypePlugins}
-                        remarkRehypeOptions={remarkRehypeOptions}
-                      >
-                        {msg.content}
-                      </Streamdown>
+                      {isLast && isStreaming && !msg.content ? (
+                        <TypingIndicator />
+                      ) : (
+                        <Streamdown
+                          isAnimating={isLast && isStreaming}
+                          components={components}
+                          rehypePlugins={rehypePlugins}
+                          remarkRehypeOptions={remarkRehypeOptions}
+                        >
+                          {msg.content}
+                        </Streamdown>
+                      )}
                     </div>
                   )}
                 </div>
