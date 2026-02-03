@@ -25,9 +25,15 @@ export function ChatContainer({ sessionId, initialMessage }: ChatContainerProps)
   const abortControllerRef = useRef<AbortController | null>(null)
   const streamingUserIdRef = useRef<string | null>(null)
   const streamingAssistantIdRef = useRef<string | null>(null)
-  const isFirstRender = useRef(true)
+  const lastInitialMessageKeyRef = useRef<string | null>(null)
   const missingKeyToastShownRef = useRef(false)
   const aiSettings = useAiSettings()
+
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort()
+    }
+  }, [])
 
   // Fetch messages if sessionId exists
   const { data: historyData, isLoading: isLoadingHistory } = useChatMessages(sessionId || "")
@@ -264,11 +270,20 @@ export function ChatContainer({ sessionId, initialMessage }: ChatContainerProps)
 
   // Handle initial message (handoff from new chat)
   useEffect(() => {
-    if (sessionId && initialMessage && isFirstRender.current) {
-      isFirstRender.current = false
-      handleSend(initialMessage)
-    }
-  }, [sessionId, initialMessage, handleSend])
+    if (!sessionId || !initialMessage) return
+    const key = `${sessionId}:${initialMessage}`
+    if (lastInitialMessageKeyRef.current === key) return
+    lastInitialMessageKeyRef.current = key
+
+    // Consume the handoff query param so a browser refresh won't re-send.
+    navigate({
+      to: '/chat/$id',
+      params: { id: sessionId },
+      search: (prev) => ({ ...prev, q: undefined }),
+      replace: true,
+    })
+    handleSend(initialMessage)
+  }, [sessionId, initialMessage, handleSend, navigate])
 
   return (
     <div className="flex flex-col h-full w-full min-h-0 bg-background">

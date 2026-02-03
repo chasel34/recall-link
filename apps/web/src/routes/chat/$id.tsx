@@ -13,5 +13,5 @@ function ChatSession() {
   const { id } = Route.useParams()
   const search = Route.useSearch()
   
-  return <ChatContainer sessionId={id} initialMessage={search.q} />
+  return <ChatContainer key={id} sessionId={id} initialMessage={search.q} />
 }
