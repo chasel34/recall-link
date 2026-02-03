@@ -5,6 +5,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@recall-link/ai': path.resolve(__dirname, './src/test/stubs/recall-link-ai.ts'),
     },
   },
   test: {
