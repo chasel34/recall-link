@@ -1,6 +1,6 @@
 import { ScrollShadow } from "@/components/base"
 import { Streamdown } from "streamdown"
-import { useEffect, useRef, useMemo } from "react"
+import { useCallback, useEffect, useMemo, useRef } from "react"
 import rehypeRaw from "rehype-raw"
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize"
 import { ChatMessage } from "../../lib/api-client"
@@ -24,11 +24,37 @@ const sourcesSchema = {
 }
 
 export function MessageList({ messages, isStreaming }: MessageListProps) {
+  const viewportRef = useRef<HTMLDivElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const isPinnedToBottomRef = useRef(true)
+  const lastScrolledMessageIdRef = useRef<string | null>(null)
+  const lastScrolledMessageContentRef = useRef<string | null>(null)
+
+  const handleViewportScroll = useCallback(() => {
+    const el = viewportRef.current
+    if (!el) return
+    const threshold = 64
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
+    isPinnedToBottomRef.current = distanceFromBottom <= threshold
+  }, [])
+
+  const lastMessage = messages[messages.length - 1]
+  const lastMessageId = lastMessage?.id
+  const lastMessageContent = lastMessage?.content
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  })
+    if (!lastMessageId) return
+    if (!isPinnedToBottomRef.current) return
+
+    const isFirstAutoScroll = lastScrolledMessageIdRef.current === null
+    const isSameMessage = lastScrolledMessageIdRef.current === lastMessageId
+    const isDeltaUpdate = isSameMessage && lastScrolledMessageContentRef.current !== lastMessageContent
+    const behavior: ScrollBehavior =
+      isFirstAutoScroll || (isStreaming && isDeltaUpdate) ? 'auto' : 'smooth'
+    bottomRef.current?.scrollIntoView({ behavior })
+    lastScrolledMessageIdRef.current = lastMessageId
+    lastScrolledMessageContentRef.current = lastMessageContent ?? null
+  }, [isStreaming, lastMessageId, lastMessageContent])
 
   const components = useMemo(() => ({
     sources: SourcesBlock as any,
@@ -36,7 +62,11 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
   }), [])
 
   return (
-    <ScrollShadow className="h-full w-full overflow-y-auto px-6 lg:px-10 py-10">
+    <ScrollShadow
+      className="h-full w-full overflow-y-auto px-6 lg:px-10 py-10"
+      viewportRef={viewportRef}
+      viewportProps={{ onScroll: handleViewportScroll }}
+    >
       <div className="max-w-3xl mx-auto flex flex-col gap-10">
         {messages.map((msg, index) => {
           const isUser = msg.role === "user"
