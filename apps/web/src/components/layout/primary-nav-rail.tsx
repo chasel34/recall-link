@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
-import { FileText, MessageSquare, Settings, Command, LogOut } from 'lucide-react'
+import { FileText, MessageSquare, Settings, Command, LogOut, Activity } from 'lucide-react'
 import { Button, Tooltip } from "@/components/base"
 import { apiClient } from '@/lib/api-client'
 import { queryClient } from '@/lib/query-client'
@@ -19,6 +19,7 @@ export function PrimaryNavRail({ className }: PrimaryNavRailProps) {
 
   const menuItems = [
     { name: '记录', path: '/items', icon: FileText, disabled: false },
+    { name: '任务', path: '/jobs', icon: Activity, disabled: false },
     { name: '对话', path: '/chat', icon: MessageSquare, disabled: false },
     { name: '设置', path: '/settings/ai', icon: Settings, disabled: false },
   ]

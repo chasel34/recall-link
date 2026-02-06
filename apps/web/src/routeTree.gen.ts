@@ -14,6 +14,7 @@ import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
+import { Route as JobsIndexRouteImport } from './routes/jobs/index'
 import { Route as ItemsIndexRouteImport } from './routes/items/index'
 import { Route as ChatIndexRouteImport } from './routes/chat/index'
 import { Route as SettingsAiRouteImport } from './routes/settings/ai'
@@ -45,6 +46,11 @@ const SettingsIndexRoute = SettingsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => SettingsRoute,
+} as any)
+const JobsIndexRoute = JobsIndexRouteImport.update({
+  id: '/jobs/',
+  path: '/jobs/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ItemsIndexRoute = ItemsIndexRouteImport.update({
   id: '/items/',
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/settings/ai': typeof SettingsAiRoute
   '/chat/': typeof ChatIndexRoute
   '/items/': typeof ItemsIndexRoute
+  '/jobs/': typeof JobsIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/items/tags/$tag': typeof ItemsTagsTagRoute
 }
@@ -99,6 +106,7 @@ export interface FileRoutesByTo {
   '/settings/ai': typeof SettingsAiRoute
   '/chat': typeof ChatIndexRoute
   '/items': typeof ItemsIndexRoute
+  '/jobs': typeof JobsIndexRoute
   '/settings': typeof SettingsIndexRoute
   '/items/tags/$tag': typeof ItemsTagsTagRoute
 }
@@ -113,6 +121,7 @@ export interface FileRoutesById {
   '/settings/ai': typeof SettingsAiRoute
   '/chat/': typeof ChatIndexRoute
   '/items/': typeof ItemsIndexRoute
+  '/jobs/': typeof JobsIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/items/tags/$tag': typeof ItemsTagsTagRoute
 }
@@ -128,6 +137,7 @@ export interface FileRouteTypes {
     | '/settings/ai'
     | '/chat/'
     | '/items/'
+    | '/jobs/'
     | '/settings/'
     | '/items/tags/$tag'
   fileRoutesByTo: FileRoutesByTo
@@ -140,6 +150,7 @@ export interface FileRouteTypes {
     | '/settings/ai'
     | '/chat'
     | '/items'
+    | '/jobs'
     | '/settings'
     | '/items/tags/$tag'
   id:
@@ -153,6 +164,7 @@ export interface FileRouteTypes {
     | '/settings/ai'
     | '/chat/'
     | '/items/'
+    | '/jobs/'
     | '/settings/'
     | '/items/tags/$tag'
   fileRoutesById: FileRoutesById
@@ -166,6 +178,7 @@ export interface RootRouteChildren {
   ItemsIdRoute: typeof ItemsIdRoute
   ChatIndexRoute: typeof ChatIndexRoute
   ItemsIndexRoute: typeof ItemsIndexRoute
+  JobsIndexRoute: typeof JobsIndexRoute
   ItemsTagsTagRoute: typeof ItemsTagsTagRoute
 }
 
@@ -205,6 +218,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/settings/'
       preLoaderRoute: typeof SettingsIndexRouteImport
       parentRoute: typeof SettingsRoute
+    }
+    '/jobs/': {
+      id: '/jobs/'
+      path: '/jobs'
+      fullPath: '/jobs/'
+      preLoaderRoute: typeof JobsIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/items/': {
       id: '/items/'
@@ -274,6 +294,7 @@ const rootRouteChildren: RootRouteChildren = {
   ItemsIdRoute: ItemsIdRoute,
   ChatIndexRoute: ChatIndexRoute,
   ItemsIndexRoute: ItemsIndexRoute,
+  JobsIndexRoute: JobsIndexRoute,
   ItemsTagsTagRoute: ItemsTagsTagRoute,
 }
 export const routeTree = rootRouteImport

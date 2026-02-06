@@ -153,6 +153,39 @@ export type UpdateAiSettingsRequest =
       gemini: AiSettingsGeminiConfig
     }
 
+export type UiStatus = 'running' | 'scheduled' | 'stale_lock' | 'queued'
+
+export interface JobInList {
+  id: string
+  item_id: string
+  item_url: string
+  item_title: string | null
+  type: string
+  state: string
+  ui_status: UiStatus
+  attempt: number
+  run_after: string
+  locked_by: string | null
+  lock_expires_at: string | null
+  last_error_code: string | null
+  last_error_message: string | null
+  created_at: string
+  updated_at: string
+  started_at: string | null
+  finished_at: string | null
+  progress_percent: number | null
+  progress_stage: string | null
+  progress_message: string | null
+  progress_updated_at: string | null
+}
+
+export interface ListJobsResponse {
+  jobs: JobInList[]
+  total: number
+  limit: number
+  offset: number
+}
+
 class ApiClient {
   private async request<T>(path: string, options?: RequestInit): Promise<T> {
     const response = await fetch(`${API_BASE}${path}`, {
@@ -239,6 +272,22 @@ class ApiClient {
 
     const query = searchParams.toString()
     return this.request<ListItemsResponse>(`/api/items${query ? `?${query}` : ''}`)
+  }
+
+  async listInProgressJobs(params: {
+    limit?: number
+    offset?: number
+    type?: string
+    status?: string
+  } = {}): Promise<ListJobsResponse> {
+    const searchParams = new URLSearchParams()
+    if (params.limit) searchParams.set('limit', params.limit.toString())
+    if (params.offset) searchParams.set('offset', params.offset.toString())
+    if (params.type) searchParams.set('type', params.type)
+    if (params.status) searchParams.set('status', params.status)
+
+    const query = searchParams.toString()
+    return this.request<ListJobsResponse>(`/api/jobs/in-progress${query ? `?${query}` : ''}`)
   }
 
   async getItem(id: string): Promise<Item> {
