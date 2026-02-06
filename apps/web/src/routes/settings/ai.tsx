@@ -1,10 +1,11 @@
 import React from 'react'
 import { createFileRoute } from '@tanstack/react-router'
-import { AlertTriangle, Cpu, Globe, Key, Save, Trash2, X } from 'lucide-react'
-import { Button, Card, CardBody, CardHeader, Input } from '@/components/base'
+import { AlertTriangle, Cpu, Globe, Key, Save, Trash2, X, Play } from 'lucide-react'
+import { Button, Card, CardBody, CardHeader, Input, Spinner } from '@/components/base'
 import { useAiSettings, DEFAULT_GEMINI_MODEL } from '@/hooks/ai-settings'
 import { addToast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
+import type { AiMode } from '@/lib/api-client'
 
 export const Route = createFileRoute('/settings/ai')({
   component: SettingsAiPage,
@@ -17,44 +18,61 @@ type DraftGemini = {
 }
 
 function SettingsAiPage() {
-  const { mode, gemini, setMode, setGeminiConfig } = useAiSettings()
+  const { settings, isLoading, isError, update, test, isUpdating, isTesting } = useAiSettings()
 
-  const [draftMode, setDraftMode] = React.useState(mode)
+  const [draftMode, setDraftMode] = React.useState<AiMode>('server')
   const [draftGemini, setDraftGemini] = React.useState<DraftGemini>({
-    apiKey: gemini.apiKey,
-    baseURL: gemini.baseURL ?? '',
-    model: gemini.model,
+    apiKey: '',
+    baseURL: '',
+    model: DEFAULT_GEMINI_MODEL,
   })
   const [submitAttempted, setSubmitAttempted] = React.useState(false)
 
-  const savedBaseURL = (gemini.baseURL ?? '').trim()
+  React.useEffect(() => {
+    if (!settings) return
+    setDraftMode(settings.mode)
+    setDraftGemini({
+      apiKey: '', // Never fill API key from server
+      baseURL: settings.gemini.baseUrl,
+      model: settings.gemini.model,
+    })
+  }, [settings])
+
+  if (isLoading) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <Spinner className="h-6 w-6 text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (isError || !settings) {
+    return (
+      <div className="flex h-96 items-center justify-center text-muted-foreground">
+        Failed to load settings
+      </div>
+    )
+  }
+
+  const savedBaseURL = (settings.gemini.baseUrl ?? '').trim()
   const draftBaseURL = draftGemini.baseURL.trim()
+  const savedModel = settings.gemini.model
+  const draftModel = draftGemini.model.trim()
 
   const isDirty =
-    draftMode !== mode ||
-    draftGemini.apiKey !== gemini.apiKey ||
+    draftMode !== settings.mode ||
+    draftGemini.apiKey !== '' ||
     draftBaseURL !== savedBaseURL ||
-    draftGemini.model !== gemini.model
+    draftModel !== savedModel
 
-  React.useEffect(() => {
-    if (isDirty) return
-    setDraftMode(mode)
-    setDraftGemini({
-      apiKey: gemini.apiKey,
-      baseURL: gemini.baseURL ?? '',
-      model: gemini.model,
-    })
-    setSubmitAttempted(false)
-  }, [isDirty, mode, gemini.apiKey, gemini.baseURL, gemini.model])
-
-  const missingApiKey = draftMode === 'local' && !draftGemini.apiKey.trim()
+  const missingApiKey = draftMode === 'user' && !settings.gemini.hasApiKey && !draftGemini.apiKey.trim()
 
   const onCancel = () => {
-    setDraftMode(mode)
+    setDraftMode(settings.mode)
     setDraftGemini({
-      apiKey: gemini.apiKey,
-      baseURL: gemini.baseURL ?? '',
-      model: gemini.model,
+      apiKey: '',
+      baseURL: settings.gemini.baseUrl,
+      model: settings.gemini.model,
     })
     setSubmitAttempted(false)
   }
@@ -62,21 +80,53 @@ function SettingsAiPage() {
   const onSave = () => {
     setSubmitAttempted(true)
 
-    if (draftMode === 'local' && !draftGemini.apiKey.trim()) {
-      return
+    if (draftMode === 'user') {
+       if (!draftGemini.apiKey.trim() && !settings.gemini.hasApiKey) {
+         return
+       }
     }
 
-    setGeminiConfig({
-      apiKey: draftGemini.apiKey,
-      baseURL: draftGemini.baseURL.trim() ? draftGemini.baseURL.trim() : undefined,
-      model: draftGemini.model.trim() ? draftGemini.model.trim() : DEFAULT_GEMINI_MODEL,
-    })
-    setMode(draftMode)
+    const payload =
+      draftMode === 'server'
+        ? { mode: 'server' as const, provider: 'gemini' as const }
+        : {
+            mode: 'user' as const,
+            provider: 'gemini' as const,
+            gemini: {
+              ...(draftGemini.apiKey.trim() ? { apiKey: draftGemini.apiKey.trim() } : {}),
+              model: draftGemini.model.trim() || DEFAULT_GEMINI_MODEL,
+              baseUrl: draftGemini.baseURL.trim(),
+            }
+          }
 
-    addToast({
-      title: '已保存',
-      description: 'AI 配置已更新',
-      color: 'success',
+    update(payload as any, {
+      onSuccess: () => {
+        addToast({ title: '已保存', description: 'AI 配置已更新', color: 'success' })
+        // setDraftGemini(s => ({ ...s, apiKey: '' })) // Keep key in form for testing
+        setSubmitAttempted(false)
+      }
+    })
+  }
+
+  const onTest = () => {
+    if (draftMode === 'user' && !draftGemini.apiKey.trim()) {
+       addToast({ title: '需要 API Key', description: '请输入 API Key 进行测试', color: 'danger' })
+       return
+    }
+
+    const payload = {
+      mode: draftMode,
+      provider: 'gemini' as const,
+      gemini: {
+        apiKey: draftGemini.apiKey.trim(),
+        baseUrl: draftGemini.baseURL.trim(),
+        model: draftGemini.model.trim() || DEFAULT_GEMINI_MODEL,
+      }
+    }
+    
+    test(payload as any, {
+      onSuccess: () => addToast({ title: '测试成功', description: 'API 连接正常', color: 'success' }),
+      onError: (err) => addToast({ title: '测试失败', description: err.message, color: 'danger' })
     })
   }
 
@@ -117,44 +167,46 @@ function SettingsAiPage() {
                 variant="flat"
                 className={cn(
                   'flex-1 justify-start h-10',
-                  draftMode === 'remote'
+                  draftMode === 'server'
                     ? 'bg-card shadow-[var(--shadow-card)] ring-1 ring-border/60'
                     : 'bg-transparent text-muted-foreground hover:text-foreground hover:bg-card/60'
                 )}
                 startContent={<Globe className="w-4 h-4" />}
-                onPress={() => setDraftMode('remote')}
-                aria-label="选择远程模式"
+                onPress={() => setDraftMode('server')}
+                aria-label="选择服务端模式"
+                data-testid="ai-mode-server"
               >
-                远程模式
+                服务端模式
               </Button>
               <Button
                 variant="flat"
                 className={cn(
                   'flex-1 justify-start h-10',
-                  draftMode === 'local'
+                  draftMode === 'user'
                     ? 'bg-card shadow-[var(--shadow-card)] ring-1 ring-border/60'
                     : 'bg-transparent text-muted-foreground hover:text-foreground hover:bg-card/60'
                 )}
                 startContent={<Cpu className="w-4 h-4" />}
-                onPress={() => setDraftMode('local')}
-                aria-label="选择本地模式"
+                onPress={() => setDraftMode('user')}
+                aria-label="选择用户模式"
+                data-testid="ai-mode-user"
               >
-                本地模式
+                用户模式
               </Button>
             </div>
             <div className="text-xs text-muted-foreground">
-              {draftMode === 'remote' ? '使用服务端 AI 处理。' : '在浏览器内使用 Gemini API Key 进行本地推理。'}
+              {draftMode === 'server' ? '使用服务端 AI 处理。' : '使用您自己的 API Key 进行推理。'}
             </div>
           </div>
 
-          {draftMode === 'local' && (
+          {draftMode === 'user' && (
             <div className="space-y-6 animate-in slide-in-from-top-2 duration-300">
               <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex gap-3 text-amber-700">
                 <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
                 <div className="text-sm">
                   <p className="font-medium mb-1">安全提醒</p>
                   <p className="opacity-90">
-                    API Key 会以明文形式存储在浏览器的 LocalStorage 中。请勿在公共设备上使用。
+                    API Key 将加密存储在服务器上。
                   </p>
                 </div>
               </div>
@@ -168,13 +220,14 @@ function SettingsAiPage() {
                     <Input
                       id="gemini-api-key"
                       type="password"
-                      placeholder="AIza..."
+                      placeholder={settings.gemini.hasApiKey ? '已设置 (输入新 Key 以覆盖)' : 'AIza...'}
                       value={draftGemini.apiKey}
                       onValueChange={(val) => setDraftGemini((s) => ({ ...s, apiKey: val }))}
                       startContent={<Key className="w-4 h-4" />}
                       className="font-mono"
                       isInvalid={submitAttempted && missingApiKey}
-                      errorMessage={submitAttempted && missingApiKey ? '需要 API Key 才能使用本地模式' : null}
+                      errorMessage={submitAttempted && missingApiKey ? '需要 API Key' : null}
+                      data-testid="ai-api-key"
                     />
                     {draftGemini.apiKey && (
                       <Button
@@ -202,6 +255,7 @@ function SettingsAiPage() {
                       value={draftGemini.baseURL}
                       onValueChange={(val) => setDraftGemini((s) => ({ ...s, baseURL: val }))}
                       className="font-mono text-sm"
+                      data-testid="ai-base-url"
                     />
                   </div>
 
@@ -215,6 +269,7 @@ function SettingsAiPage() {
                       value={draftGemini.model}
                       onValueChange={(val) => setDraftGemini((s) => ({ ...s, model: val }))}
                       className="font-mono text-sm"
+                      data-testid="ai-model"
                     />
                   </div>
                 </div>
@@ -223,13 +278,23 @@ function SettingsAiPage() {
           )}
 
           <div className="pt-2 flex items-center justify-between gap-3">
-            <div className="text-xs text-muted-foreground">
-              {isDirty ? '尚未保存。' : '已与当前配置同步。'}
+            <div className="flex items-center gap-2">
+               {draftMode === 'user' && (
+                 <Button
+                   variant="light"
+                   isDisabled={!draftGemini.apiKey}
+                   startContent={isTesting ? <Spinner className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                   onPress={onTest}
+                   data-testid="ai-config-test"
+                 >
+                   测试连接
+                 </Button>
+               )}
             </div>
             <div className="flex items-center gap-2">
               <Button
                 variant="light"
-                isDisabled={!isDirty}
+                isDisabled={!isDirty || isUpdating}
                 startContent={<X className="w-4 h-4" />}
                 onPress={onCancel}
               >
@@ -237,9 +302,11 @@ function SettingsAiPage() {
               </Button>
               <Button
                 color="primary"
-                isDisabled={!isDirty}
-                startContent={<Save className="w-4 h-4" />}
+                isDisabled={!isDirty || isUpdating}
+                isLoading={isUpdating}
+                startContent={!isUpdating && <Save className="w-4 h-4" />}
                 onPress={onSave}
+                data-testid="ai-config-save"
               >
                 保存
               </Button>

@@ -2,4 +2,4 @@
 
 - 2026-01-31: Keep fetch extraction behind `@recall-link/jobs-handlers` via `handleFetch` wrapping `fetchAndExtract`.
 
-- 2026-02-01: Local AI (browser-side) reuses `packages/ai` for strict tag/summary constraints and chat streaming to keep outputs consistent with server-side behavior.
+- 2026-02-05: Migrated from browser-side AI inference to server-side "User Mode". This ensures consistent output constraints and better security for user API keys (encrypted at rest vs localStorage).

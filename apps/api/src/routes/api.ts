@@ -4,6 +4,7 @@ import { chatApp } from '../features/chat/chat.route.js'
 import { eventsApp } from '../features/events/events.route.js'
 import { tagsApp } from '../features/tags/tags.route.js'
 import { authApp } from '../features/auth/auth.route.js'
+import { settingsApp } from '../features/settings/ai-settings.route.js'
 
 export const apiRoutes = new Hono()
 
@@ -14,3 +15,4 @@ apiRoutes.route('/items/events', eventsApp)
 apiRoutes.route('/items', itemsApp)
 apiRoutes.route('/tags', tagsApp)
 apiRoutes.route('/chat', chatApp)
+apiRoutes.route('/settings', settingsApp)

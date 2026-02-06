@@ -4,13 +4,10 @@ import { TanStackRouterDevtools } from '@tanstack/router-devtools'
 import { AppLayout } from '@/components/layout/app-layout'
 import { addToast, ToastViewport } from '@/lib/toast'
 import { queryClient } from '@/lib/query-client'
-import { apiClient, type Item, type ListItemsResponse } from '@/lib/api-client'
+import { type Item, type ListItemsResponse } from '@/lib/api-client'
 import { subscribeSSE } from '@/lib/sse'
 import { Spinner } from '@/components/base'
 import { useMe } from '@/hooks/use-me'
-import { useAiSettings } from '@/hooks/ai-settings'
-
-const DEFAULT_LOCAL_GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta'
 
 function AgentationDev() {
   const [Component, setComponent] = React.useState<React.ComponentType | null>(
@@ -57,118 +54,6 @@ function Root() {
   const isAuthRoute = pathname === '/login' || pathname === '/register'
 
   const me = useMe({ enabled: !isAuthRoute })
-  const aiSettings = useAiSettings(me.user?.id)
-  const aiSettingsRef = React.useRef({
-    mode: aiSettings.mode,
-    gemini: aiSettings.gemini,
-  })
-  const localAiQueueRef = React.useRef<Item[]>([])
-  const localAiPendingRef = React.useRef(new Set<string>())
-  const localAiProcessingRef = React.useRef(false)
-  const missingApiKeyToastRef = React.useRef(false)
-
-  React.useEffect(() => {
-    aiSettingsRef.current = {
-      mode: aiSettings.mode,
-      gemini: {
-        apiKey: aiSettings.gemini.apiKey,
-        baseURL: aiSettings.gemini.baseURL,
-        model: aiSettings.gemini.model,
-      },
-    }
-  }, [aiSettings.mode, aiSettings.gemini.apiKey, aiSettings.gemini.baseURL, aiSettings.gemini.model])
-
-  const processLocalAiQueue = React.useCallback(async () => {
-    if (localAiProcessingRef.current) return
-    localAiProcessingRef.current = true
-
-    try {
-      while (localAiQueueRef.current.length > 0) {
-        const nextItem = localAiQueueRef.current.shift()
-        if (!nextItem) break
-        localAiPendingRef.current.delete(nextItem.id)
-
-        const settings = aiSettingsRef.current
-        if (settings.mode !== 'local') continue
-
-        const apiKey = settings.gemini.apiKey?.trim()
-        if (!apiKey) {
-          if (!missingApiKeyToastRef.current) {
-            missingApiKeyToastRef.current = true
-            addToast({
-              title: '缺少 Gemini API Key',
-              description: '请在设置中添加 API Key 后再试',
-              color: 'danger',
-            })
-          }
-          continue
-        }
-
-        const latest = queryClient.getQueryData<Item>(['items', nextItem.id])
-        const candidate = latest ?? nextItem
-
-        if (candidate.ai_mode !== 'local') continue
-        if (candidate.status !== 'completed') continue
-        if (!candidate.clean_text) continue
-        if (candidate.summary) continue
-
-        try {
-          const { generateTagsAndSummary, mergeTagsWithExisting } = await import('@recall-link/ai')
-
-          const config = {
-            apiKey,
-            model: settings.gemini.model,
-            baseURL: settings.gemini.baseURL?.trim() || DEFAULT_LOCAL_GEMINI_BASE_URL,
-          }
-
-          const existingTagNames = (await apiClient.listTags()).map((t) => t.name)
-          const generated = await generateTagsAndSummary(candidate.clean_text, config)
-          const mergedTags = await mergeTagsWithExisting(generated.tags, existingTagNames, config)
-
-          await apiClient.applyAiToItem(candidate.id, {
-            summary: generated.summary,
-            tags: mergedTags,
-          })
-        } catch (error) {
-          console.error('Local AI generation failed', error)
-          continue
-        }
-      }
-    } finally {
-      localAiProcessingRef.current = false
-    }
-  }, [])
-
-  const enqueueLocalAi = React.useCallback(
-    (item: Item, source: ItemUpdatedEnvelope['data']['source']) => {
-      if (source !== 'fetch') return
-      if (item.ai_mode !== 'local') return
-      if (item.status !== 'completed') return
-      if (!item.clean_text) return
-      if (item.summary) return
-
-      const settings = aiSettingsRef.current
-      if (settings.mode !== 'local') return
-
-      if (!settings.gemini.apiKey?.trim()) {
-        if (!missingApiKeyToastRef.current) {
-          missingApiKeyToastRef.current = true
-          addToast({
-            title: '缺少 Gemini API Key',
-            description: '请在设置中添加 API Key 后再试',
-          color: 'danger',
-          })
-        }
-        return
-      }
-
-      if (localAiPendingRef.current.has(item.id)) return
-      localAiPendingRef.current.add(item.id)
-      localAiQueueRef.current.push(item)
-      void processLocalAiQueue()
-    },
-    [processLocalAiQueue]
-  )
 
   React.useEffect(() => {
     if (!me.user) return
@@ -225,8 +110,6 @@ function Root() {
           })
         }
       }
-
-      enqueueLocalAi(item, payload.data.source)
     }
 
     const sub = subscribeSSE({
@@ -242,7 +125,7 @@ function Root() {
     return () => {
       sub.close()
     }
-  }, [enqueueLocalAi, me.user])
+  }, [me.user])
 
   if (isAuthRoute) {
     return (

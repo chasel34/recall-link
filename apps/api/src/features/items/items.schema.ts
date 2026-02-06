@@ -2,18 +2,13 @@ import { z } from 'zod'
 
 export const createItemSchema = z.object({
   url: z.string().url(),
-  ai_mode: z.enum(['remote', 'local']).optional()
+  ai_mode: z.enum(['server', 'user']).optional()
 })
 
 export const patchItemSchema = z.object({
   summary: z.string().min(1).max(5000).optional(),
   tags: z.array(z.string().min(1).max(64)).max(50).optional(),
   note: z.string().max(10000).optional()
-})
-
-export const applyAiSchema = z.object({
-  summary: z.string().min(1).max(5000),
-  tags: z.array(z.string().min(1).max(64)).max(50)
 })
 
 export const listItemsQuerySchema = z.object({

@@ -10,7 +10,7 @@ export type Item = {
   title: string | null
   domain: string
   status: string
-  ai_mode: 'remote' | 'local' | null
+  ai_mode: 'server' | 'user' | null
   error_code: string | null
   error_message: string | null
   clean_text: string | null
@@ -63,7 +63,7 @@ export function createItemWithJob(
     urlNormalized: string
     domain: string
     timestamp: string
-    aiMode?: 'remote' | 'local'
+    aiMode?: 'server' | 'user'
   }
 ): { itemId: string; jobId: string } {
   return db.transaction(() => {
@@ -76,7 +76,7 @@ export function createItemWithJob(
       data.url,
       data.urlNormalized,
       data.domain,
-      data.aiMode ?? 'remote',
+      data.aiMode ?? 'server',
       data.timestamp,
       data.timestamp
     )
@@ -255,7 +255,11 @@ export function listItemsByTags(
 /**
  * Get item by ID
  */
-export function getItemById(db: Database, id: string): Item | null {
+export function getItemById(db: Database, id: string | null): Item | null {
+  if (!id) {
+    return null
+  }
+
   const item = db.prepare('SELECT * FROM items WHERE id = ?').get(id) as Item | undefined
   return item ?? null
 }

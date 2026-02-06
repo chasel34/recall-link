@@ -1,14 +1,23 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { addToast } from '@/lib/toast'
-import { useAiSettings } from '@/hooks/ai-settings'
+import { AI_SETTINGS_QUERY_KEY, useAiSettings } from '@/hooks/ai-settings'
 
 export function useCreateItem() {
   const queryClient = useQueryClient()
-  const { mode } = useAiSettings()
+  const { settings } = useAiSettings()
 
   return useMutation({
-    mutationFn: (url: string) => apiClient.createItem(url, mode),
+    mutationFn: async (url: string) => {
+      const resolvedSettings =
+        settings ??
+        (await queryClient.fetchQuery({
+          queryKey: AI_SETTINGS_QUERY_KEY,
+          queryFn: () => apiClient.getAiSettings(),
+        }))
+
+      return apiClient.createItem(url, resolvedSettings?.mode)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['items'] })
       queryClient.invalidateQueries({ queryKey: ['tags'] })

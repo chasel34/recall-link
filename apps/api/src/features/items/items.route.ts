@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
-import { createItemSchema, patchItemSchema, listItemsQuerySchema, applyAiSchema } from './items.schema.js'
+import { createItemSchema, patchItemSchema, listItemsQuerySchema } from './items.schema.js'
 import { generateId, normalizeUrl, extractDomain } from '../../lib/utils.js'
 import {
   findItemByNormalizedUrl,
@@ -12,21 +12,42 @@ import {
   deleteItem,
 } from './items.db.js'
 import { getDb } from '../../db/context.js'
-import { getItemTags, setItemTags } from '../tags/tags.db.js'
+import { getItemTags } from '../tags/tags.db.js'
+import { getUserModelConfig } from '../settings/ai-settings.db.js'
 import { searchItems } from './items.search.js'
 import { getAuthUser, requireAuth } from '../auth/auth.middleware.js'
-import { replaceItemFts } from './items.fts.js'
-import { publishItemUpdated } from '../events/events.bus.js'
 
 export const itemsApp = new Hono()
 
 itemsApp.use('*', requireAuth)
+
+const userModelConfigError = {
+  error: 'USER_MODEL_CONFIG_MISSING',
+  message: 'User AI configuration is missing or invalid.',
+} as const
+
+function assertUserModelConfigAvailable(db: ReturnType<typeof getDb>, userId: string) {
+  const record = getUserModelConfig(db, userId)
+  const apiKeyEnc = record?.api_key_enc?.trim()
+  if (!record || !apiKeyEnc) {
+    return userModelConfigError
+  }
+
+  return null
+}
 
 itemsApp.post('/', zValidator('json', createItemSchema), (c) => {
   try {
     const db = getDb()
     const userId = getAuthUser(c).id
     const { url, ai_mode } = c.req.valid('json')
+
+    if (ai_mode === 'user') {
+      const error = assertUserModelConfigAvailable(db, userId)
+      if (error) {
+        return c.json(error, 409)
+      }
+    }
 
     const urlNormalized = normalizeUrl(url)
     const domain = extractDomain(url)
@@ -225,14 +246,11 @@ itemsApp.post('/:id/analyze', (c) => {
       )
     }
 
-    if (item.ai_mode === 'local') {
-      return c.json(
-        {
-          error: 'LOCAL_AI_ENABLED',
-          message: 'Local AI is enabled for this item. Remote analysis is disabled.',
-        },
-        409
-      )
+    if (item.ai_mode === 'user') {
+      const error = assertUserModelConfigAvailable(db, userId)
+      if (error) {
+        return c.json(error, 409)
+      }
     }
 
     if (!item.clean_text) {
@@ -265,58 +283,6 @@ itemsApp.post('/:id/analyze', (c) => {
       },
       500
     )
-  }
-})
-
-itemsApp.post('/:id/apply-ai', zValidator('json', applyAiSchema), (c) => {
-  try {
-    const db = getDb()
-    const userId = getAuthUser(c).id
-    const id = c.req.param('id')
-    const { summary, tags } = c.req.valid('json')
-
-    const existing = getItemByIdForUser(db, userId, id)
-    if (!existing) {
-      return c.json({
-        error: 'NOT_FOUND',
-        message: 'Item not found',
-      }, 404)
-    }
-
-    db.transaction(() => {
-      const now = new Date().toISOString()
-      db.prepare(
-        `
-          UPDATE items
-          SET summary = ?, summary_source = 'ai', updated_at = ?
-          WHERE id = ? AND user_id = ?
-        `
-      ).run(summary, now, id, userId)
-
-      setItemTags(db, userId, id, tags)
-      replaceItemFts(db, id)
-      publishItemUpdated(db, id, 'ai')
-    })()
-
-    const updated = getItemByIdForUser(db, userId, id)
-    if (!updated) {
-      return c.json({
-        error: 'NOT_FOUND',
-        message: 'Item not found',
-      }, 404)
-    }
-    const updatedTags = getItemTags(db, id)
-
-    return c.json({
-      ...updated,
-      tags: updatedTags,
-    })
-  } catch (error) {
-    console.error('[POST /items/:id/apply-ai] Error:', error)
-    return c.json({
-      error: 'INTERNAL_ERROR',
-      message: 'Failed to apply AI results',
-    }, 500)
   }
 })
 

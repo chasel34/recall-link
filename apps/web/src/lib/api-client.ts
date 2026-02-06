@@ -33,7 +33,7 @@ export interface Item {
   summary: string | null
   clean_text: string | null
   clean_html?: string | null
-  ai_mode?: 'remote' | 'local' | null
+  ai_mode?: 'server' | 'user' | null
   status: 'pending' | 'completed' | 'failed'
   tags: string[]
   created_at: string
@@ -122,10 +122,36 @@ export type ChatStreamMeta = {
   sources: ChatSource[]
 }
 
-export type LocalChatPrepareResponse = {
-  meta: ChatStreamMeta
-  history: ChatHistoryEntry[]
+export type AiMode = 'server' | 'user'
+export type AiProvider = 'gemini'
+
+export interface AiSettingsGeminiConfig {
+  model: string
+  baseUrl?: string
+  apiKey?: string
 }
+
+export interface AiSettings {
+  mode: AiMode
+  provider: AiProvider
+  gemini: {
+    model: string
+    baseUrl: string
+    hasApiKey: boolean
+  }
+}
+
+export type UpdateAiSettingsRequest =
+  | {
+      mode: 'server'
+      provider: 'gemini'
+      gemini?: Partial<AiSettingsGeminiConfig>
+    }
+  | {
+      mode: 'user'
+      provider: 'gemini'
+      gemini: AiSettingsGeminiConfig
+    }
 
 class ApiClient {
   private async request<T>(path: string, options?: RequestInit): Promise<T> {
@@ -144,6 +170,33 @@ class ApiClient {
     }
 
     return response.json()
+  }
+
+  async getAiSettings(): Promise<AiSettings> {
+    return this.request<AiSettings>('/api/settings/ai')
+  }
+
+  async updateAiSettings(data: UpdateAiSettingsRequest): Promise<AiSettings> {
+    return this.request<AiSettings>('/api/settings/ai', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async testAiSettings(data: UpdateAiSettingsRequest): Promise<{ ok: boolean; error?: string; message?: string }> {
+    const result = await this.request<{ ok: boolean; error?: string; message?: string }>(
+      '/api/settings/ai/test',
+      {
+      method: 'POST',
+      body: JSON.stringify(data),
+      }
+    )
+
+    if (!result.ok) {
+      throw new Error(result.message || result.error || 'AI test failed')
+    }
+
+    return result
   }
 
   async register(email: string, password: string): Promise<{ user: User }> {
@@ -192,7 +245,7 @@ class ApiClient {
     return this.request<Item>(`/api/items/${id}`)
   }
 
-  async createItem(url: string, ai_mode?: 'remote' | 'local'): Promise<Item> {
+  async createItem(url: string, ai_mode?: 'server' | 'user'): Promise<Item> {
     return this.request<Item>('/api/items', {
       method: 'POST',
       body: JSON.stringify({ url, ai_mode }),
@@ -202,13 +255,6 @@ class ApiClient {
   async updateItem(id: string, data: UpdateItemDto): Promise<Item> {
     return this.request<Item>(`/api/items/${id}`, {
       method: 'PATCH',
-      body: JSON.stringify(data),
-    })
-  }
-
-  async applyAiToItem(id: string, data: { summary: string; tags: string[] }): Promise<Item> {
-    return this.request<Item>(`/api/items/${id}/apply-ai`, {
-      method: 'POST',
       body: JSON.stringify(data),
     })
   }
@@ -250,23 +296,6 @@ class ApiClient {
     return this.request<ListChatMessagesResponse>(
       `/api/chat/sessions/${sessionId}/messages${query ? `?${query}` : ''}`
     )
-  }
-
-  async prepareLocalChatMessage(sessionId: string, message: string): Promise<LocalChatPrepareResponse> {
-    return this.request<LocalChatPrepareResponse>(`/api/chat/sessions/${sessionId}/messages/local`, {
-      method: 'POST',
-      body: JSON.stringify({ message }),
-    })
-  }
-
-  async persistLocalChatAssistantMessage(
-    sessionId: string,
-    data: { assistant_message_id: string; content: string; meta_json?: string }
-  ): Promise<{ ok: true }> {
-    return this.request<{ ok: true }>(`/api/chat/sessions/${sessionId}/messages/local/assistant`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
   }
 
   sendChatMessageStream(

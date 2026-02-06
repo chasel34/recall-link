@@ -5,7 +5,7 @@ import { handleAiProcess } from '@recall-link/jobs-handlers'
 import { getAllTagNames, setItemTags } from '../../features/tags/tags.db.js'
 import { publishItemUpdated } from '../../features/events/events.bus.js'
 import { replaceItemFts } from '../../features/items/items.fts.js'
-import { getAIConfig } from '../../config/ai.config.js'
+import { resolveAIConfig } from '../../config/ai.resolver.js'
 
 export async function processAIJob(db: Database, job: Job): Promise<void> {
   const item = getItemById(db, job.item_id)
@@ -26,7 +26,8 @@ export async function processAIJob(db: Database, job: Job): Promise<void> {
 
   console.log(`[ai] Processing ${item.url}`)
 
-  const config = getAIConfig()
+  const mode = item.ai_mode === 'user' ? 'user' : 'server'
+  const config = resolveAIConfig(db, userId, mode)
   const existingTags = getAllTagNames(db, userId)
   const { summary, tags: mergedTags } = await handleAiProcess({
     cleanText: item.clean_text,

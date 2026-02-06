@@ -4,12 +4,6 @@ export const chatRequestSchema = z.object({
   message: z.string().min(1).max(5000)
 })
 
-export const chatLocalAssistantSchema = z.object({
-  assistant_message_id: z.string().min(1),
-  content: z.string().min(1).max(5000),
-  meta_json: z.string().optional(),
-})
-
 export const createChatSessionSchema = z.object({
   title: z.string().min(1).max(200).optional(),
 })

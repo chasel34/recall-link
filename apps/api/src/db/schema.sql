@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS items (
   title TEXT,
   domain TEXT,
   status TEXT NOT NULL,
-  ai_mode TEXT,
+  ai_mode TEXT CHECK (ai_mode IN ('server', 'user')),
   error_code TEXT,
   error_message TEXT,
   clean_text TEXT,
@@ -56,6 +56,22 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id_created_at ON sessions(user_id, created_at);
+
+-- user model configs
+CREATE TABLE IF NOT EXISTS user_model_configs (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  mode TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  base_url TEXT,
+  model TEXT,
+  api_key_enc TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_model_configs_user_id ON user_model_configs(user_id);
 
 -- item-tags
 CREATE TABLE IF NOT EXISTS item_tags (

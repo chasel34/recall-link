@@ -1,63 +1,65 @@
-# Local AI (Browser-side Gemini)
+# AI Processing Modes (`server` vs `user`)
 
-This repo supports two AI execution modes:
+This repository supports two AI execution modes for summarizing content and answering chat questions. Both modes run **entirely on the server** for security and consistency, but they differ in whose credentials and models are used.
 
-- `remote` (default): server-side AI execution
-- `local`: browser-side AI execution using a user-provided Google Gemini API key
+## Terminology
 
-## Product Constraints (Aligned)
+- **`server` mode (Default)**: Uses the server's environment-based configuration (e.g., `GEMINI_API_KEY` in `apps/api/.env`).
+- **`user` mode**: Uses a user-provided Google Gemini API key and optional custom Base URL/Model. (Formerly referred to as `local` mode).
 
-Local mode MUST match the same output constraints as server-side AI:
+## Why not "Local"?
 
-- Tags: 3-5, simplified Chinese, 2-6 characters each
-- Summary: <= 150 Chinese characters
+Previously, the architecture supported browser-side inference (Gemini in the browser). This has been **deprecated and removed** to:
+1. Ensure consistent output constraints (tags/summaries) between modes.
+2. Provide a unified streaming chat experience via Server-Sent Events (SSE).
+3. Avoid storing sensitive API keys in insecure browser `localStorage`.
 
-These constraints are enforced by reusing `packages/ai` from the web app.
+## Configuration & Storage
 
-## Where It Lives
+### Server Mode
+Configuration is loaded via `apps/api/src/config/ai.config.ts`.
+- **API Key**: `GEMINI_API_KEY` env var.
+- **Base URL**: `GEMINI_BASE_URL` env var or `apps/api/config/ai.json`.
+- **Model**: `GEMINI_MODEL` env var or `apps/api/config/ai.json`.
 
-### Settings UI
+### User Mode
+Users can configure their own credentials in the Web UI:
+- **Settings Path**: `apps/web/src/routes/settings/ai.tsx`
+- **Data Management**: Handled by `apps/web/src/hooks/ai-settings.ts` (React Query).
+- **Security**: 
+  - API keys are **never** stored in `localStorage`.
+  - Keys are transmitted once to the server via `PUT /api/settings/ai`.
+  - Keys are stored **encrypted at rest** in the `user_model_configs` table (`api_key_enc`).
+  - The UI only shows if a key is present (`hasApiKey: true`), never the key itself.
 
-- Route: `apps/web/src/routes/settings.tsx`
-- Store: `apps/web/src/hooks/ai-settings.ts`
-- Storage:
-  - Namespaced by user: `ai-settings:${userId}` in `localStorage`
-  - Cleared on logout
+## Workflow
 
-### Local item processing
+### 1. Item Processing
+When a new item is saved:
+1. The background worker runs the `fetch` job.
+2. Upon completion, the `fetch` processor checks the item's `ai_mode`.
+3. **Gating**: If `ai_mode === 'user'`, it verifies the user has a valid encrypted API key in the database.
+4. If valid (or if in `server` mode), it enqueues an `ai_process` job.
+5. The `ai_process` job uses the appropriate credentials to generate tags and summary.
 
-- SSE subscription + runner: `apps/web/src/routes/__root.tsx`
-- Trigger: on `item.updated` SSE with `source='fetch'`
-- Conditions: `item.ai_mode === 'local'`, `status==='completed'`, `clean_text` present, `summary` empty
-- Writes back to server:
-  - `POST /api/items/:id/apply-ai`
-
-### Local chat
-
-- UI: `apps/web/src/components/chat/chat-container.tsx`
-- API split for local mode:
-  - `POST /api/chat/sessions/:id/messages/local` (persist user message + return history/sources + ids)
-  - `POST /api/chat/sessions/:id/messages/local/assistant` (persist assistant message)
+### 2. Chat
+All chat sessions use the server-side SSE endpoint:
+- `POST /api/chat/sessions/:id/messages` (SSE stream)
+- `GET /api/chat/sessions/:id/messages` (list messages)
+- The server automatically selects the `server` or `user` configuration based on the user's settings.
+- Legacy local chat endpoints (`/messages/local*`) have been removed.
 
 ## Backend Support
 
-### Per-item mode
+### Per-item Mode
+- DB column: `items.ai_mode TEXT` (`server|user`).
+- Default is `server`.
 
-- DB column: `items.ai_mode TEXT` (`remote|local`)
-- Create item can set it via `POST /api/items` body `{ ai_mode }`
+### Worker Behavior
+- The `ai_process` processor (`apps/api/src/queue/processors/ai.processor.ts`) retrieves the correct config (either from env or decrypted from `user_model_configs`) before calling the AI provider.
 
-### Worker behavior
-
-- Fetch processor skips enqueueing `ai_process` for `ai_mode='local'` items.
-
-### DB migrations
-
-Existing on-disk databases are migrated via `apps/api/src/db/client.ts`:
-
-- Adds `items.ai_mode` if missing: `ALTER TABLE items ADD COLUMN ai_mode TEXT`
-
-## Notes / Risks
-
-- Local mode stores API keys in browser localStorage; treat as insecure.
-- `apps/web` reuses `packages/ai` via a direct source alias to avoid requiring `packages/ai/dist` in dev.
-  - See `apps/web/tsconfig.json` and `apps/web/vite.config.ts`.
+## Summary of Removed Features
+- Browser-side Gemini inference.
+- `localStorage` storage for API keys.
+- `POST /api/items/:id/apply-ai` (Local processing write-back).
+- `POST /api/chat/sessions/:id/messages/local*` (Local chat persistence).

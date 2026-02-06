@@ -3,7 +3,6 @@ import { zValidator } from '@hono/zod-validator'
 import { streamSSE } from 'hono/streaming'
 import {
   chatRequestSchema,
-  chatLocalAssistantSchema,
   createChatSessionSchema,
   listChatMessagesQuerySchema,
   listChatSessionsQuerySchema,
@@ -18,11 +17,11 @@ import {
   listChatSessions,
   setChatSessionTitle,
   touchChatSession,
-  upsertChatMessage,
 } from './chat.db.js'
 import { retrieveChatSources } from './chat.retrieval.js'
 import { streamChatAnswer } from './chat.llm.js'
 import { getAuthUser, requireAuth } from '../auth/auth.middleware.js'
+import { isUserModelConfigMissingError } from '../../config/ai.resolver.js'
 
 export const chatApp = new Hono()
 
@@ -161,6 +160,8 @@ chatApp.post('/sessions/:id/messages', zValidator('json', chatRequestSchema), (c
         .map((m) => ({ role: m.role, content: m.content }))
 
       const textStream = await streamChatAnswer({
+        db,
+        userId,
         question: body.message,
         history,
         sources,
@@ -186,8 +187,9 @@ chatApp.post('/sessions/:id/messages', zValidator('json', chatRequestSchema), (c
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
+      const errorCode = isUserModelConfigMissingError(error) ? 'USER_MODEL_CONFIG_MISSING' : 'AI_ERROR'
       try {
-        await stream.writeSSE({ event: 'error', data: JSON.stringify({ error: 'AI_ERROR', message }) })
+        await stream.writeSSE({ event: 'error', data: JSON.stringify({ error: errorCode, message }) })
       } catch {
         aborted = true
       }
@@ -215,78 +217,4 @@ chatApp.post('/sessions/:id/messages', zValidator('json', chatRequestSchema), (c
       touchChatSession(db, sessionId, timestamp)
     }
   })
-})
-
-chatApp.post('/sessions/:id/messages/local', zValidator('json', chatRequestSchema), (c) => {
-  const db = getDb()
-  const userId = getAuthUser(c).id
-  const sessionId = c.req.param('id')
-  const session = getChatSessionById(db, sessionId)
-  if (!session || session.user_id !== userId) {
-    return c.json({ error: 'NOT_FOUND', message: 'Session not found' }, 404)
-  }
-
-  const body = c.req.valid('json')
-  const now = new Date().toISOString()
-
-  const userMessageId = generateId('msg')
-  insertChatMessage(db, {
-    id: userMessageId,
-    session_id: sessionId,
-    role: 'user',
-    content: body.message,
-    user_id: userId,
-    now,
-  })
-
-  if (!session.title) {
-    const title = deriveTitleFromMessage(body.message)
-    setChatSessionTitle(db, sessionId, title, now)
-  } else {
-    touchChatSession(db, sessionId, now)
-  }
-
-  const sources = retrieveChatSources(db, userId, body.message)
-  const assistantMessageId = generateId('msg')
-
-  const history = listChatMessages(db, sessionId, { limit: 20 })
-    .filter((m) => m.id !== userMessageId)
-    .map((m) => ({ role: m.role, content: m.content }))
-
-  return c.json({
-    meta: {
-      session_id: sessionId,
-      user_message_id: userMessageId,
-      assistant_message_id: assistantMessageId,
-      sources,
-    },
-    history,
-  })
-})
-
-chatApp.post('/sessions/:id/messages/local/assistant', zValidator('json', chatLocalAssistantSchema), (c) => {
-  const db = getDb()
-  const userId = getAuthUser(c).id
-  const sessionId = c.req.param('id')
-  const session = getChatSessionById(db, sessionId)
-  if (!session || session.user_id !== userId) {
-    return c.json({ error: 'NOT_FOUND', message: 'Session not found' }, 404)
-  }
-
-  const body = c.req.valid('json')
-  const now = new Date().toISOString()
-
-  upsertChatMessage(db, {
-    id: body.assistant_message_id,
-    session_id: sessionId,
-    role: 'assistant',
-    content: body.content,
-    meta_json: body.meta_json ?? null,
-    user_id: userId,
-    now,
-  })
-
-  touchChatSession(db, sessionId, now)
-
-  return c.json({ ok: true })
 })

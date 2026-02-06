@@ -8,4 +8,4 @@ Project documentation and implementation notes.
 |-----|----------|-------|
 | Product requirements | `docs/prd.md` | core feature intent, terminology |
 | Implementation plans | `docs/plans/*` | historical design/implementation notes |
-| Local AI notes | `docs/local-ai.md` | browser-side Gemini, settings + wiring |
+| AI modes | `docs/local-ai.md` | server vs user (credentials), settings + wiring |

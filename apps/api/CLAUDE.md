@@ -36,16 +36,12 @@ Where to look:
 - DB schema/migrations: `apps/api/src/db/schema.sql`, `apps/api/src/db/client.ts`
 - Shared utils: `apps/api/src/lib/utils.ts` (IDs + URL normalization)
 
-Local AI support (relevant files):
+AI processing:
 - `items.ai_mode`:
   - schema: `apps/api/src/db/schema.sql`
   - programmatic migration: `apps/api/src/db/client.ts`
   - create item accepts `ai_mode`: `apps/api/src/features/items/items.route.ts`
-- Local item AI apply endpoint: `POST /api/items/:id/apply-ai` in `apps/api/src/features/items/items.route.ts`
-- Local chat endpoints:
-  - `POST /api/chat/sessions/:id/messages/local`
-  - `POST /api/chat/sessions/:id/messages/local/assistant`
-  in `apps/api/src/features/chat/chat.route.ts`
+- AI configuration (server/user): `apps/api/src/config/ai.config.ts`, `apps/api/src/features/settings/ai-settings.db.ts`
 
 ## Environment
 
@@ -53,7 +49,7 @@ Local AI support (relevant files):
 - `WORKER_ENABLED=1` to start the polling worker in dev
 - `GEMINI_API_KEY` required for AI processing; optional `GEMINI_BASE_URL`, `GEMINI_MODEL`
 
-Note: Local AI mode uses a user-provided key in the browser; server-side env vars are for Remote AI mode.
+Note: User AI mode uses a user-provided key stored encrypted in the database; server-side env vars are for Server AI mode.
 
 ## Local Conventions
 

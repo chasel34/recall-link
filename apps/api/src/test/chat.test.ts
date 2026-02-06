@@ -16,6 +16,8 @@ vi.mock('../features/chat/chat.llm.js', () => {
 })
 
 import { app } from '../app.js'
+import { streamChatAnswer } from '../features/chat/chat.llm.js'
+import { UserModelConfigMissingError } from '../config/ai.resolver.js'
 
 function parseSse(body: string): Array<{ event: string; data: string }> {
   const blocks = body
@@ -145,9 +147,38 @@ describe('chat routes', () => {
     expect(messagesBody.messages[1].content).toBe('Hello world')
   })
 
-  it('prepares local chat and persists assistant message', async () => {
+  it('emits user config missing error when AI config is missing', async () => {
     seedSearchableItem(db, userId)
 
+    const create = await app.request('/api/chat/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
+      body: JSON.stringify({}),
+    })
+    const session = await create.json()
+
+    vi.mocked(streamChatAnswer).mockRejectedValueOnce(
+      new UserModelConfigMissingError('User AI config is missing.')
+    )
+
+    const res = await app.request(`/api/chat/sessions/${session.id}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
+      body: JSON.stringify({ message: 'react hooks' }),
+    })
+
+    expect(res.status).toBe(200)
+    const text = await res.text()
+    const events = parseSse(text)
+    const errorEvent = events.find((event) => event.event === 'error')
+
+    expect(errorEvent).toBeTruthy()
+    const payload = JSON.parse(errorEvent!.data) as { error: string; message: string }
+    expect(payload.error).toBe('USER_MODEL_CONFIG_MISSING')
+    expect(payload.message).toMatch(/config/i)
+  })
+
+  it('returns 404 for removed local chat endpoints', async () => {
     const create = await app.request('/api/chat/sessions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Cookie: cookie },
@@ -161,36 +192,18 @@ describe('chat routes', () => {
       body: JSON.stringify({ message: 'react hooks' }),
     })
 
-    expect(prepare.status).toBe(200)
-    const prepareBody = await prepare.json()
-    expect(prepareBody.meta.session_id).toBe(session.id)
-    expect(prepareBody.meta.user_message_id).toMatch(/^msg_/)
-    expect(prepareBody.meta.assistant_message_id).toMatch(/^msg_/)
-    expect(Array.isArray(prepareBody.meta.sources)).toBe(true)
-    expect(prepareBody.meta.sources.length).toBeGreaterThan(0)
-    expect(Array.isArray(prepareBody.history)).toBe(true)
-    expect(prepareBody.history.length).toBe(0)
+    expect(prepare.status).toBe(404)
 
     const persist = await app.request(`/api/chat/sessions/${session.id}/messages/local/assistant`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Cookie: cookie },
       body: JSON.stringify({
-        assistant_message_id: prepareBody.meta.assistant_message_id,
+        assistant_message_id: 'msg_test',
         content: 'Local answer',
-        meta_json: JSON.stringify({ sources: prepareBody.meta.sources }),
+        meta_json: JSON.stringify({ sources: [] }),
       }),
     })
 
-    expect(persist.status).toBe(200)
-    const persistBody = await persist.json()
-    expect(persistBody.ok).toBe(true)
-
-    const messagesRes = await app.request(`/api/chat/sessions/${session.id}/messages`, { headers: { Cookie: cookie } })
-    expect(messagesRes.status).toBe(200)
-    const messagesBody = await messagesRes.json()
-    expect(messagesBody.messages.length).toBe(2)
-    expect(messagesBody.messages[0].role).toBe('user')
-    expect(messagesBody.messages[1].role).toBe('assistant')
-    expect(messagesBody.messages[1].content).toBe('Local answer')
+    expect(persist.status).toBe(404)
   })
 })

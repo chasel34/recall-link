@@ -45,15 +45,6 @@ vi.mock('../../hooks/use-chat-sessions', () => {
   }
 })
 
-vi.mock('../../hooks/ai-settings', () => {
-  return {
-    useAiSettings: () => ({
-      mode: 'remote',
-      provider: 'gemini',
-      gemini: { apiKey: '', baseURL: undefined, model: 'test' },
-    }),
-  }
-})
 
 function renderChatAt(initialEntry: string) {
   const queryClient = new QueryClient({

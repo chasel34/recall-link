@@ -5,7 +5,6 @@ import { ReactNode } from 'react'
 import React from 'react'
 import { apiClient } from '@/lib/api-client'
 import { queryClient } from '@/lib/query-client'
-import { clearAiSettingsOnLogout } from '@/hooks/ai-settings'
 
 interface AppSidebarProps {
   onItemClick?: () => void
@@ -74,7 +73,6 @@ export function AppSidebar({ onItemClick, children }: AppSidebarProps) {
             } catch {
               // ignore
             } finally {
-              clearAiSettingsOnLogout()
               queryClient.clear()
               setIsLoggingOut(false)
               await navigate({ to: '/login', replace: true })

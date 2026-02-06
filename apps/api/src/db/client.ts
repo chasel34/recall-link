@@ -39,9 +39,11 @@ export function applySchema(db: Db, schemaFilePath: string) {
   migrateItemsCleanHtmlColumn(db)
   migrateItemsUserIdColumn(db)
   migrateItemsAiModeColumn(db)
+  migrateItemsAiModeValues(db)
   migrateTagsUserIdColumn(db)
   migrateItemsUrlNormalizedUnique(db)
   migrateTagsNameUnique(db)
+  migrateUserModelConfigsTable(db)
 
   for (const stmt of otherStatements) {
     db.exec(stmt)
@@ -143,6 +145,21 @@ function migrateItemsAiModeColumn(db: Db): void {
 
   console.log('[db] Migrating items table: adding ai_mode column')
   db.exec(`ALTER TABLE items ADD COLUMN ai_mode TEXT`)
+}
+
+function migrateItemsAiModeValues(db: Db): void {
+  if (!tableExists(db, 'items')) return
+  const columns = db.prepare(`PRAGMA table_info('items')`).all() as Array<{ name: string }>
+  const hasAiMode = columns.some((c) => c.name === 'ai_mode')
+  if (!hasAiMode) return
+
+  const updateRemote = db.prepare(`UPDATE items SET ai_mode = 'server' WHERE ai_mode = 'remote'`).run()
+  const updateLocal = db.prepare(`UPDATE items SET ai_mode = 'user' WHERE ai_mode = 'local'`).run()
+  const total = updateRemote.changes + updateLocal.changes
+
+  if (total > 0) {
+    console.log(`[db] Migrating items.ai_mode values: ${total} rows updated`)
+  }
 }
 
 function migrateTagsUserIdColumn(db: Db): void {
@@ -257,6 +274,27 @@ function migrateTagsNameUnique(db: Db): void {
       db.exec(`ALTER TABLE tags_new RENAME TO tags`)
     })()
   })
+}
+
+function migrateUserModelConfigsTable(db: Db): void {
+  if (tableExists(db, 'user_model_configs')) return
+
+  console.log('[db] Migrating: creating user_model_configs table')
+  db.exec(`
+    CREATE TABLE user_model_configs (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      mode TEXT NOT NULL,
+      provider TEXT NOT NULL,
+      base_url TEXT,
+      model TEXT,
+      api_key_enc TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `)
+  db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_user_model_configs_user_id ON user_model_configs(user_id)`)
 }
 
 function withForeignKeysOff(db: Db, fn: () => void): void {

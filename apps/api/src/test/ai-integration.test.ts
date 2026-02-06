@@ -3,7 +3,6 @@ import { app } from '../app.js'
 import Database from 'better-sqlite3'
 import { applySchema, defaultSchemaPath } from '../db/client.js'
 import { setDb, closeDb } from '../db/context.js'
-import { subscribeEvents } from '../features/events/events.bus.js'
 import { registerTestUser } from './test-auth.js'
 
 vi.mock('@recall-link/jobs-handlers', () => ({
@@ -67,7 +66,7 @@ describe('AI Processing Integration Tests', () => {
       expect(job.item_id).toBe('item_test')
     })
 
-    it('should return 409 if item uses local ai mode', async () => {
+    it('should create ai_process job for user ai mode when config exists', async () => {
       const timestamp = new Date().toISOString()
       db.prepare(
         `
@@ -75,30 +74,81 @@ describe('AI Processing Integration Tests', () => {
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `
       ).run(
-        'item_local',
+        'item_user',
         userId,
-        'https://example.com/local',
-        'https://example.com/local',
+        'https://example.com/user',
+        'https://example.com/user',
         'example.com',
         'completed',
-        'Local content',
-        'local',
+        'User content',
+        'user',
         timestamp,
         timestamp
       )
 
-      const res = await app.request('/api/items/item_local/analyze', {
+      db.prepare(
+        `
+          INSERT INTO user_model_configs (id, user_id, mode, provider, base_url, model, api_key_enc, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `
+      ).run(
+        'umc_test',
+        userId,
+        'user',
+        'gemini',
+        null,
+        'gemini-3-flash-preview',
+        'enc-key',
+        timestamp,
+        timestamp
+      )
+
+      const res = await app.request('/api/items/item_user/analyze', {
+        method: 'POST',
+        headers: { Cookie: cookie },
+      })
+
+      expect(res.status).toBe(201)
+      const data = await res.json()
+      expect(data.job_id).toMatch(/^job_/)
+
+      const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(data.job_id) as any
+      expect(job.type).toBe('ai_process')
+      expect(job.item_id).toBe('item_user')
+    })
+
+    it('should return 409 if user ai config is missing', async () => {
+      const timestamp = new Date().toISOString()
+      db.prepare(
+        `
+          INSERT INTO items (id, user_id, url, url_normalized, domain, status, clean_text, ai_mode, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `
+      ).run(
+        'item_user_missing_config',
+        userId,
+        'https://example.com/user-missing-config',
+        'https://example.com/user-missing-config',
+        'example.com',
+        'completed',
+        'User content',
+        'user',
+        timestamp,
+        timestamp
+      )
+
+      const res = await app.request('/api/items/item_user_missing_config/analyze', {
         method: 'POST',
         headers: { Cookie: cookie },
       })
 
       expect(res.status).toBe(409)
       const data = await res.json()
-      expect(data.error).toBe('LOCAL_AI_ENABLED')
+      expect(data.error).toBe('USER_MODEL_CONFIG_MISSING')
 
       const jobCount = db
         .prepare("SELECT COUNT(*) as count FROM jobs WHERE item_id = ? AND type = 'ai_process'")
-        .get('item_local') as { count: number }
+        .get('item_user_missing_config') as { count: number }
       expect(jobCount.count).toBe(0)
     })
 
@@ -128,75 +178,6 @@ describe('AI Processing Integration Tests', () => {
       expect(res.status).toBe(400)
       const data = await res.json()
       expect(data.error).toBe('NO_CONTENT')
-    })
-  })
-
-  describe('POST /api/items/:id/apply-ai', () => {
-    it('should persist local AI results and publish event', async () => {
-      const timestamp = new Date().toISOString()
-      db.prepare(
-        `
-          INSERT INTO items (id, user_id, url, url_normalized, domain, status, ai_mode, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `
-      ).run(
-        'item_local_ai',
-        userId,
-        'https://example.com/local-ai',
-        'https://example.com/local-ai',
-        'example.com',
-        'completed',
-        'local',
-        timestamp,
-        timestamp
-      )
-
-      const events: Array<{ type: string; data?: any }> = []
-      const unsubscribe = subscribeEvents((event) => {
-        events.push(event)
-      })
-
-      const res = await app.request('/api/items/item_local_ai/apply-ai', {
-        method: 'POST',
-        headers: {
-          Cookie: cookie,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          summary: 'Local AI summary',
-          tags: ['React', 'TypeScript'],
-        }),
-      })
-
-      unsubscribe()
-
-      expect(res.status).toBe(200)
-      const data = await res.json()
-      expect(data.summary).toBe('Local AI summary')
-      expect(data.tags).toEqual(['React', 'TypeScript'])
-
-      const item = db.prepare('SELECT summary, summary_source FROM items WHERE id = ?').get('item_local_ai') as {
-        summary: string
-        summary_source: string
-      }
-      expect(item.summary).toBe('Local AI summary')
-      expect(item.summary_source).toBe('ai')
-
-      const tagRows = db.prepare(
-        `
-          SELECT t.name
-          FROM tags t
-          JOIN item_tags it ON t.id = it.tag_id
-          WHERE it.item_id = ?
-          ORDER BY t.name ASC
-        `
-      ).all('item_local_ai') as Array<{ name: string }>
-      expect(tagRows.map((row) => row.name)).toEqual(['React', 'TypeScript'])
-
-      const itemEvent = events.find((event) => event.type === 'item.updated')
-      expect(itemEvent?.data?.source).toBe('ai')
-      expect(itemEvent?.data?.item?.id).toBe('item_local_ai')
-      expect(itemEvent?.data?.item?.tags).toEqual(['React', 'TypeScript'])
     })
   })
 

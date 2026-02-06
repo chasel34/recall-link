@@ -3,7 +3,6 @@ import { FileText, MessageSquare, Settings, Command, LogOut } from 'lucide-react
 import { Button, Tooltip } from "@/components/base"
 import { apiClient } from '@/lib/api-client'
 import { queryClient } from '@/lib/query-client'
-import { clearAiSettingsOnLogout } from '@/hooks/ai-settings'
 import React from 'react'
 
 interface PrimaryNavRailProps {
@@ -86,7 +85,6 @@ export function PrimaryNavRail({ className }: PrimaryNavRailProps) {
                 } catch {
                   // ignore
                 } finally {
-                  clearAiSettingsOnLogout()
                   queryClient.clear()
                   setIsLoggingOut(false)
                   await navigate({ to: '/login', replace: true })
