@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { z } from 'zod'
 import { useJobs } from '@/hooks/use-jobs'
-import { Tabs, Tab } from '@/components/base/tabs'
 import { Skeleton } from '@/components/base/skeleton'
 import { Button } from '@/components/base'
 import { RotateCw, AlertCircle, Clock, Timer, Loader2, Activity } from 'lucide-react'
@@ -78,6 +77,25 @@ function ProgressBar({ percent, stage, message }: { percent: number | null, stag
   )
 }
 
+function FilterPill({ isActive, children, onPress }: { isActive: boolean; children: React.ReactNode; onPress: () => void }) {
+  return (
+    <Button
+      variant="light"
+      size="sm"
+      aria-pressed={isActive}
+      onPress={onPress}
+      className={cn(
+        'h-8 px-3 rounded-full border text-xs font-medium transition-all',
+        isActive
+          ? 'bg-primary/10 shadow-[var(--shadow-card)] ring-1 ring-primary/20 text-foreground font-semibold border-transparent'
+          : 'bg-transparent text-muted-foreground border-border/60 hover:text-foreground hover:bg-card/60'
+      )}
+    >
+      {children}
+    </Button>
+  )
+}
+
 function JobsPage() {
   const navigate = Route.useNavigate()
   const search = Route.useSearch()
@@ -87,15 +105,15 @@ function JobsPage() {
   const isLoading = jobsQuery.isPending
   const isError = jobsQuery.isError
 
-  const handleStatusChange = (status: string) => {
+  const setStatusFilter = (status: UiStatus | undefined) => {
     navigate({
-      search: (old) => ({ ...old, status: status === 'all' ? undefined : status as any, offset: 0 }),
+      search: (old) => ({ ...old, status, offset: 0 }),
     })
   }
 
-  const handleTypeChange = (type: string) => {
+  const setTypeFilter = (type: string | undefined) => {
     navigate({
-      search: (old) => ({ ...old, type: type === 'all' ? undefined : type, offset: 0 }),
+      search: (old) => ({ ...old, type, offset: 0 }),
     })
   }
 
@@ -105,133 +123,152 @@ function JobsPage() {
         <div className="max-w-7xl 2xl:max-w-[88rem] mx-auto px-4 lg:px-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="font-serif text-2xl font-semibold tracking-tight text-foreground/90">任务中心</h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                查看系统正在处理的后台任务。
-              </p>
-            </div>
+               <h1 className="font-serif text-3xl font-semibold tracking-tight text-foreground/90">任务中心</h1>
+               <p className="mt-1 text-sm text-muted-foreground">
+                 查看系统正在处理的后台任务。
+               </p>
+             </div>
             <Button
               variant="light"
               size="sm"
               isIconOnly
               onPress={() => jobsQuery.refetch()}
-              className={cn(jobsQuery.isFetching && "animate-spin")}
             >
-              <RotateCw className="w-4 h-4" />
+              <RotateCw className={cn("w-4 h-4", jobsQuery.isFetching && 'animate-spin')} />
             </Button>
           </div>
-          
-          <div className="mt-6 flex flex-col sm:flex-row gap-4">
-            <Tabs 
-              selectedKey={search.status || 'all'} 
-              onSelectionChange={handleStatusChange}
-              size="sm"
-            >
-              <Tab key="all" title="全部状态" />
-              <Tab key="running" title="运行中" />
-              <Tab key="queued" title="排队" />
-              <Tab key="scheduled" title="计划中" />
-              <Tab key="stale_lock" title="锁过期" />
-            </Tabs>
+           
+           <div className="mt-6 flex flex-col gap-3">
+             <div className="flex flex-wrap items-center gap-2">
+               <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted-foreground/70 mr-1">
+                 状态
+               </span>
+               <FilterPill isActive={search.status == null} onPress={() => setStatusFilter(undefined)}>
+                 全部状态
+               </FilterPill>
+               <FilterPill isActive={search.status === 'running'} onPress={() => setStatusFilter('running')}>
+                 运行中
+               </FilterPill>
+               <FilterPill isActive={search.status === 'queued'} onPress={() => setStatusFilter('queued')}>
+                 排队
+               </FilterPill>
+               <FilterPill isActive={search.status === 'scheduled'} onPress={() => setStatusFilter('scheduled')}>
+                 计划中
+               </FilterPill>
+               <FilterPill isActive={search.status === 'stale_lock'} onPress={() => setStatusFilter('stale_lock')}>
+                 锁过期
+               </FilterPill>
+             </div>
 
-             <Tabs 
-              selectedKey={search.type || 'all'} 
-              onSelectionChange={handleTypeChange}
-              size="sm"
-            >
-              <Tab key="all" title="全部类型" />
-              <Tab key="fetch" title="抓取" />
-              <Tab key="ai_process" title="AI分析" />
-            </Tabs>
-          </div>
-        </div>
-      </div>
+             <div className="flex flex-wrap items-center gap-2">
+               <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted-foreground/70 mr-1">
+                 类型
+               </span>
+               <FilterPill isActive={search.type == null} onPress={() => setTypeFilter(undefined)}>
+                 全部类型
+               </FilterPill>
+               <FilterPill isActive={search.type === 'fetch'} onPress={() => setTypeFilter('fetch')}>
+                 抓取
+               </FilterPill>
+               <FilterPill isActive={search.type === 'ai_process'} onPress={() => setTypeFilter('ai_process')}>
+                 AI分析
+               </FilterPill>
+             </div>
+           </div>
+         </div>
+       </div>
 
       <div className="max-w-7xl 2xl:max-w-[88rem] mx-auto w-full px-4 lg:px-8 py-10">
         {isError ? (
-          <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-6 text-center">
-             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
-                <AlertCircle className="h-6 w-6 text-destructive" />
+          <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-8 text-center">
+             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 border border-destructive/20 shadow-[var(--shadow-card)]">
+                 <AlertCircle className="h-6 w-6 text-destructive" />
              </div>
-             <h3 className="mt-4 text-sm font-semibold text-foreground">加载失败</h3>
-             <p className="mt-2 text-sm text-muted-foreground">无法获取任务列表，请稍后重试。</p>
-             <div className="mt-6">
-               <Button variant="flat" onPress={() => jobsQuery.refetch()}>重试</Button>
-             </div>
+              <h3 className="mt-4 text-sm font-semibold text-foreground">加载失败</h3>
+              <p className="mt-2 text-sm text-muted-foreground">无法获取任务列表，请稍后重试。</p>
+              <div className="mt-6">
+                <Button variant="flat" onPress={() => jobsQuery.refetch()}>重试</Button>
+              </div>
           </div>
         ) : (
-          <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-             {isLoading ? (
-               <div className="divide-y divide-border">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <div key={i} className="p-4 flex items-center gap-4">
-                      <Skeleton className="h-4 w-24" />
-                      <div className="flex-1">
-                         <Skeleton className="h-4 w-full max-w-md mb-2" />
-                         <Skeleton className="h-3 w-1/2" />
+          isLoading ? (
+            <div className="border-y border-border/60 bg-transparent divide-y divide-border/60">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="px-4 py-4 flex items-center gap-4">
+                  <Skeleton className="h-4 w-24" />
+                  <div className="flex-1">
+                    <Skeleton className="h-4 w-full max-w-md mb-2" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </div>
+                  <Skeleton className="h-4 w-32" />
+                </div>
+              ))}
+            </div>
+          ) : jobs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-muted/70 border border-border/60 flex items-center justify-center shadow-[var(--shadow-card)]">
+                <Activity className="w-6 h-6 text-muted-foreground" />
+              </div>
+              <h3 className="mt-6 font-serif text-xl font-semibold">暂无任务</h3>
+              <p className="mt-2 text-sm text-muted-foreground max-w-sm">
+                所有任务都已完成，或者当前筛选条件下没有任务。
+              </p>
+            </div>
+          ) : (
+            <div className="border-y border-border/60 bg-transparent divide-y divide-border/60">
+              {jobs.map((job) => (
+                <div key={job.id} className="group px-4 py-4 hover:bg-muted/40 transition-colors">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                    <div className="min-w-[100px] flex flex-col gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded uppercase">{job.type}</span>
+                        <StatusBadge status={job.ui_status} lastErrorMessage={job.last_error_message} />
                       </div>
-                      <Skeleton className="h-4 w-32" />
+                      <div className="text-xs text-muted-foreground flex items-center gap-1">
+                        <RotateCw className="w-3 h-3" />
+                        第 {job.attempt} 次尝试
+                      </div>
                     </div>
-                  ))}
-               </div>
-             ) : jobs.length === 0 ? (
-               <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-                 <div className="bg-muted/50 p-4 rounded-full mb-4">
-                   <Activity className="w-8 h-8 text-muted-foreground" />
-                 </div>
-                 <h3 className="text-lg font-medium text-foreground">没有进行中的任务</h3>
-                 <p className="mt-2 text-sm text-muted-foreground max-w-sm">
-                   所有任务都已完成，或者当前筛选条件下没有任务。
-                 </p>
-               </div>
-             ) : (
-               <div className="divide-y divide-border">
-                 {jobs.map((job) => (
-                   <div key={job.id} className="group p-4 hover:bg-muted/30 transition-colors">
-                     <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                       <div className="min-w-[100px] flex flex-col gap-2">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded uppercase">{job.type}</span>
-                            <StatusBadge status={job.ui_status} lastErrorMessage={job.last_error_message} />
-                          </div>
-                          <div className="text-xs text-muted-foreground flex items-center gap-1">
-                             <RotateCw className="w-3 h-3" />
-                             第 {job.attempt} 次尝试
-                          </div>
-                       </div>
-                       
-                       <div className="flex-1 min-w-0">
-                         {job.item_title && (
-                            <Link to="/items/$id" params={{ id: job.item_id }} className="block font-medium text-foreground hover:text-primary truncate transition-colors">
-                              {job.item_title}
-                            </Link>
-                         )}
-                         <a href={job.item_url} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:underline truncate block">
-                           {job.item_url}
-                         </a>
-                         <div className="mt-1 text-xs text-muted-foreground">
-                            {job.run_after ? `计划于 ${new Date(job.run_after).toLocaleString()} 执行` : job.started_at ? `开始于 ${new Date(job.started_at).toLocaleString()}` : `创建于 ${new Date(job.created_at).toLocaleString()}`}
-                         </div>
-                         {job.last_error_message && (
-                           <div className="mt-1 text-xs text-destructive/80 truncate" title={job.last_error_message}>
-                             上次失败：{job.last_error_message}
-                           </div>
-                         )}
-                       </div>
 
-                       <div className="w-full sm:w-auto flex items-center justify-end">
-                         <ProgressBar 
-                           percent={job.progress_percent} 
-                           stage={job.progress_stage} 
-                           message={job.progress_message} 
-                         />
-                       </div>
-                     </div>
-                   </div>
-                 ))}
-               </div>
-             )}
-          </div>
+                    <div className="flex-1 min-w-0">
+                      {job.item_title && (
+                        <Link
+                          to="/items/$id"
+                          params={{ id: job.item_id }}
+                          className="block font-serif text-[15px] font-semibold text-foreground/90 hover:text-primary truncate transition-colors"
+                        >
+                          {job.item_title}
+                        </Link>
+                      )}
+                      <a href={job.item_url} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:underline truncate block">
+                        {job.item_url}
+                      </a>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {job.run_after
+                          ? `计划于 ${new Date(job.run_after).toLocaleString()} 执行`
+                          : job.started_at
+                            ? `开始于 ${new Date(job.started_at).toLocaleString()}`
+                            : `创建于 ${new Date(job.created_at).toLocaleString()}`}
+                      </div>
+                      {job.last_error_message && (
+                        <div className="mt-1 text-xs text-destructive/80 truncate" title={job.last_error_message}>
+                          上次失败：{job.last_error_message}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="w-full sm:w-auto flex items-center justify-end">
+                      <ProgressBar
+                        percent={job.progress_percent}
+                        stage={job.progress_stage}
+                        message={job.progress_message}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
         )}
       </div>
     </div>
