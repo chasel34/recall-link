@@ -128,6 +128,49 @@ describe('ai.processor', () => {
 
       await expect(processAIJob(db, job)).rejects.toThrow('no content')
     })
+
+    it('should record progress on error', async () => {
+      const { handleAiProcess } = await import('@recall-link/jobs-handlers')
+      vi.mocked(handleAiProcess).mockRejectedValue(new Error('AI failure'))
+
+      const job: Job = {
+        id: 'job_test_error',
+        item_id: 'item_test',
+        type: 'ai_process',
+        state: 'pending',
+        attempt: 0,
+        run_after: new Date().toISOString(),
+        locked_by: 'worker_1',
+        lock_expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+        last_error_code: null,
+        last_error_message: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        started_at: new Date().toISOString(),
+        finished_at: null,
+      }
+
+      db.prepare(
+        'INSERT INTO jobs (id, item_id, type, state, attempt, run_after, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+      ).run(
+        job.id,
+        job.item_id,
+        job.type,
+        job.state,
+        job.attempt,
+        job.run_after,
+        job.created_at,
+        job.updated_at
+      )
+
+      await expect(processAIJob(db, job)).rejects.toThrow('AI failure')
+
+      const updatedJob = db
+        .prepare('SELECT progress_stage, progress_message FROM jobs WHERE id = ?')
+        .get('job_test_error') as any
+      expect(updatedJob.progress_stage).toBe('ai:error')
+      expect(updatedJob.progress_message).toBe('Retrying: AI failure')
+    })
   })
 
   describe('shouldRetryAIError', () => {

@@ -101,7 +101,11 @@ CREATE TABLE IF NOT EXISTS jobs (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   started_at TEXT,
-  finished_at TEXT
+  finished_at TEXT,
+  progress_percent INTEGER,
+  progress_stage TEXT,
+  progress_message TEXT,
+  progress_updated_at TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_jobs_item_id ON jobs(item_id);

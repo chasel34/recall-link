@@ -252,14 +252,33 @@ describe('processFetchJob', () => {
       finished_at: null,
     }
 
+    db.prepare(
+      'INSERT INTO jobs (id, item_id, type, state, attempt, run_after, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(
+      job.id,
+      job.item_id,
+      job.type,
+      job.state,
+      job.attempt,
+      job.run_after,
+      job.created_at,
+      job.updated_at
+    )
+
     await expect(processFetchJob(db, job)).rejects.toThrow('HTTP 404')
+
+    const updatedJob = db
+      .prepare('SELECT progress_stage, progress_message FROM jobs WHERE id = ?')
+      .get('job_test') as any
+    expect(updatedJob.progress_stage).toBe('fetch:error')
+    expect(updatedJob.progress_message).toBe('Retrying: HTTP 404')
   })
 
   it('should handle network errors', async () => {
     vi.mocked(handleFetch).mockRejectedValue(new Error('Network failure'))
 
     const job: Job = {
-      id: 'job_test',
+      id: 'job_test_network',
       item_id: 'item_test',
       type: 'fetch',
       state: 'pending',
@@ -275,6 +294,25 @@ describe('processFetchJob', () => {
       finished_at: null,
     }
 
+    db.prepare(
+      'INSERT INTO jobs (id, item_id, type, state, attempt, run_after, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(
+      job.id,
+      job.item_id,
+      job.type,
+      job.state,
+      job.attempt,
+      job.run_after,
+      job.created_at,
+      job.updated_at
+    )
+
     await expect(processFetchJob(db, job)).rejects.toThrow('Network failure')
+
+    const updatedJob = db
+      .prepare('SELECT progress_stage, progress_message FROM jobs WHERE id = ?')
+      .get('job_test_network') as any
+    expect(updatedJob.progress_stage).toBe('fetch:error')
+    expect(updatedJob.progress_message).toBe('Retrying: Network failure')
   })
 })

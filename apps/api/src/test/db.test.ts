@@ -76,4 +76,43 @@ describe('db schema', () => {
     expect(columns.some((c) => c.name === 'clean_html')).toBe(true)
     db.close()
   })
+
+  it('migrates jobs table to add progress columns when missing', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'recall-db-migrate-jobs-'))
+    const schemaPath = path.join(dir, 'schema.sql')
+
+    // Simulate an older schema without the progress columns.
+    fs.writeFileSync(
+      schemaPath,
+      [
+        'CREATE TABLE IF NOT EXISTS jobs (',
+        '  id TEXT PRIMARY KEY,',
+        '  item_id TEXT NOT NULL,',
+        '  type TEXT NOT NULL,',
+        '  state TEXT NOT NULL,',
+        '  attempt INTEGER NOT NULL,',
+        '  run_after TEXT NOT NULL,',
+        '  locked_by TEXT,',
+        '  lock_expires_at TEXT,',
+        '  last_error_code TEXT,',
+        '  last_error_message TEXT,',
+        '  created_at TEXT NOT NULL,',
+        '  updated_at TEXT NOT NULL,',
+        '  started_at TEXT,',
+        '  finished_at TEXT',
+        ');',
+      ].join('\n'),
+      'utf8'
+    )
+
+    const db = openDb(path.join(dir, 'test.sqlite'))
+    applySchema(db, schemaPath)
+
+    const columns = db.prepare("PRAGMA table_info('jobs')").all() as Array<{ name: string }>
+    expect(columns.some((c) => c.name === 'progress_percent')).toBe(true)
+    expect(columns.some((c) => c.name === 'progress_stage')).toBe(true)
+    expect(columns.some((c) => c.name === 'progress_message')).toBe(true)
+    expect(columns.some((c) => c.name === 'progress_updated_at')).toBe(true)
+    db.close()
+  })
 })

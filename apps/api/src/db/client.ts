@@ -35,6 +35,7 @@ export function applySchema(db: Db, schemaFilePath: string) {
     db.exec(stmt)
   }
 
+  migrateJobsProgressColumns(db)
   migrateJobsItemIdUnique(db)
   migrateItemsCleanHtmlColumn(db)
   migrateItemsUserIdColumn(db)
@@ -56,6 +57,23 @@ export function applySchema(db: Db, schemaFilePath: string) {
 
 export function defaultSchemaPath() {
   return path.join(process.cwd(), 'src', 'db', 'schema.sql')
+}
+
+function migrateJobsProgressColumns(db: Db): void {
+  if (!tableExists(db, 'jobs')) return
+  const columns = db.prepare(`PRAGMA table_info('jobs')`).all() as Array<{ name: string }>
+
+  const addIfMissing = (colName: string, colDef: string) => {
+    if (!columns.some((c) => c.name === colName)) {
+      console.log(`[db] Migrating jobs table: adding ${colName} column`)
+      db.exec(`ALTER TABLE jobs ADD COLUMN ${colName} ${colDef}`)
+    }
+  }
+
+  addIfMissing('progress_percent', 'INTEGER')
+  addIfMissing('progress_stage', 'TEXT')
+  addIfMissing('progress_message', 'TEXT')
+  addIfMissing('progress_updated_at', 'TEXT')
 }
 
 function migrateJobsItemIdUnique(db: Db): void {
@@ -119,6 +137,7 @@ function migrateJobsItemIdUnique(db: Db): void {
 }
 
 function migrateItemsCleanHtmlColumn(db: Db): void {
+  if (!tableExists(db, 'items')) return
   const columns = db.prepare(`PRAGMA table_info('items')`).all() as Array<{ name: string }>
   const hasCleanHtml = columns.some((c) => c.name === 'clean_html')
   if (hasCleanHtml) return

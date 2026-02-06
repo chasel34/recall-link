@@ -1,6 +1,7 @@
 import type { Database } from 'better-sqlite3'
 import type { Job } from '@recall-link/jobs'
 import { getItemById } from '../../features/items/items.db.js'
+import { setJobProgress } from '../../features/jobs/jobs.progress.db.js'
 import { handleAiProcess } from '@recall-link/jobs-handlers'
 import { getAllTagNames, setItemTags } from '../../features/tags/tags.db.js'
 import { publishItemUpdated } from '../../features/events/events.bus.js'
@@ -25,34 +26,48 @@ export async function processAIJob(db: Database, job: Job): Promise<void> {
   const userId = item.user_id
 
   console.log(`[ai] Processing ${item.url}`)
+  try {
+    setJobProgress(db, job.id, { stage: 'ai:generating', percent: 10 })
 
-  const mode = item.ai_mode === 'user' ? 'user' : 'server'
-  const config = resolveAIConfig(db, userId, mode)
-  const existingTags = getAllTagNames(db, userId)
-  const { summary, tags: mergedTags } = await handleAiProcess({
-    cleanText: item.clean_text,
-    existingTags,
-    config,
-  })
+    const mode = item.ai_mode === 'user' ? 'user' : 'server'
+    const config = resolveAIConfig(db, userId, mode)
+    const existingTags = getAllTagNames(db, userId)
+    const { summary, tags: mergedTags } = await handleAiProcess({
+      cleanText: item.clean_text,
+      existingTags,
+      config,
+    })
 
-  db.transaction(() => {
-    const now = new Date().toISOString()
-    db.prepare(
-      `
+    setJobProgress(db, job.id, { stage: 'ai:writing', percent: 85 })
+
+    db.transaction(() => {
+      const now = new Date().toISOString()
+      db.prepare(
+        `
         UPDATE items
         SET summary = ?, summary_source = 'ai', updated_at = ?
         WHERE id = ?
       `
-    ).run(summary, now, item.id)
+      ).run(summary, now, item.id)
 
-    setItemTags(db, userId, item.id, mergedTags)
+      setItemTags(db, userId, item.id, mergedTags)
 
-    replaceItemFts(db, item.id)
-  })()
+      replaceItemFts(db, item.id)
+    })()
 
-  console.log(`[ai] Completed ${item.url} - Tags: ${mergedTags.join(', ')}`)
+    setJobProgress(db, job.id, { stage: 'ai:done', percent: 100 })
 
-  publishItemUpdated(db, item.id, 'ai')
+    console.log(`[ai] Completed ${item.url} - Tags: ${mergedTags.join(', ')}`)
+
+    publishItemUpdated(db, item.id, 'ai')
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    setJobProgress(db, job.id, {
+      stage: 'ai:error',
+      message: `Retrying: ${errorMessage.slice(0, 160)}`,
+    })
+    throw error
+  }
 }
 
 export function shouldRetryAIError(error: any): boolean {

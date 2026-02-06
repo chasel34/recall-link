@@ -2,6 +2,7 @@ import type { Database } from 'better-sqlite3'
 import type { Job } from '@recall-link/jobs'
 import { handleFetch } from '@recall-link/jobs-handlers'
 import { updateItemContent } from '../../features/jobs/jobs.db.js'
+import { setJobProgress } from '../../features/jobs/jobs.progress.db.js'
 import { getItemById } from '../../features/items/items.db.js'
 import { getUserModelConfig } from '../../features/settings/ai-settings.db.js'
 import { generateId } from '../../lib/utils.js'
@@ -18,41 +19,56 @@ export async function processFetchJob(db: Database, job: Job): Promise<void> {
     throw new Error(`Item not found: ${itemId}`)
   }
   console.log(`[fetch] Processing ${item.url}`)
-  const { title, clean_text, clean_html } = await handleFetch({ url: item.url })
-  updateItemContent(db, item.id, {
-    title: title || (item.title ?? undefined),
-    clean_text,
-    clean_html,
-    status: 'completed',
-  })
-  replaceItemFts(db, item.id)
-  console.log(`[fetch] Completed ${item.url}`)
-  if (item.ai_mode === 'user') {
-    const userId = item.user_id
-    if (userId === null) {
-      console.log(
-        `[fetch] Skipping ai_process for user item ${item.id} (missing user id)`
-      )
-      publishItemUpdated(db, item.id, 'fetch')
-      return
+  try {
+    setJobProgress(db, job.id, { stage: 'fetch:fetching', percent: 10 })
+
+    const { title, clean_text, clean_html } = await handleFetch({ url: item.url })
+    setJobProgress(db, job.id, { stage: 'fetch:saving', percent: 80 })
+
+    updateItemContent(db, item.id, {
+      title: title || (item.title ?? undefined),
+      clean_text,
+      clean_html,
+      status: 'completed',
+    })
+    replaceItemFts(db, item.id)
+    setJobProgress(db, job.id, { stage: 'fetch:done', percent: 100 })
+
+    console.log(`[fetch] Completed ${item.url}`)
+    if (item.ai_mode === 'user') {
+      const userId = item.user_id
+      if (userId === null) {
+        console.log(
+          `[fetch] Skipping ai_process for user item ${item.id} (missing user id)`
+        )
+        publishItemUpdated(db, item.id, 'fetch')
+        return
+      }
+      const userConfig = getUserModelConfig(db, userId)
+      if (!userConfig || !userConfig.api_key_enc) {
+        console.log(
+          `[fetch] Skipping ai_process for user item ${item.id} (missing user model config)`
+        )
+        publishItemUpdated(db, item.id, 'fetch')
+        return
+      }
     }
-    const userConfig = getUserModelConfig(db, userId)
-    if (!userConfig || !userConfig.api_key_enc) {
-      console.log(
-        `[fetch] Skipping ai_process for user item ${item.id} (missing user model config)`
-      )
-      publishItemUpdated(db, item.id, 'fetch')
-      return
-    }
-  }
-  const aiJobId = generateId('job')
-  const now = new Date().toISOString()
-  db.prepare(
-    `
+    const aiJobId = generateId('job')
+    const now = new Date().toISOString()
+    db.prepare(
+      `
       INSERT INTO jobs (id, item_id, type, state, attempt, run_after, created_at, updated_at)
       VALUES (?, ?, 'ai_process', 'pending', 0, ?, ?, ?)
     `
-  ).run(aiJobId, item.id, now, now, now)
-  console.log(`[fetch] Created ai_process job ${aiJobId} for item ${item.id}`)
-  publishItemUpdated(db, item.id, 'fetch')
+    ).run(aiJobId, item.id, now, now, now)
+    console.log(`[fetch] Created ai_process job ${aiJobId} for item ${item.id}`)
+    publishItemUpdated(db, item.id, 'fetch')
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    setJobProgress(db, job.id, {
+      stage: 'fetch:error',
+      message: `Retrying: ${errorMessage.slice(0, 160)}`,
+    })
+    throw error
+  }
 }
