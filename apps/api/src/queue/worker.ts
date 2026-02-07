@@ -4,8 +4,11 @@ import { acquireJob, completeJob, createWorker, failJob, retryJob, type Job } fr
 import { failItem } from '../features/jobs/jobs.db.js'
 import { processFetchJob } from './processors/fetch.processor.js'
 import { processAIJob, shouldRetryAIError } from './processors/ai.processor.js'
+import { processEmbedJob, shouldRetryEmbedError } from './processors/embed.processor.js'
 import { logger } from '../lib/logger.js'
 import { publishItemUpdated } from '../features/events/events.bus.js'
+import { failBookmarkImportEntryByItemId } from '../features/imports/imports.db.js'
+import { isUserEmbeddingConfigMissingError } from '../config/ai.resolver.js'
 
 const POLL_INTERVAL_MS = 5000
 
@@ -41,10 +44,14 @@ export function startWorker(config: WorkerConfig): void {
     handlers: {
       fetch: (job: Job) => processFetchJob(getDb(), job),
       ai_process: (job: Job) => processAIJob(getDb(), job),
+      embed_process: (job: Job) => processEmbedJob(getDb(), job),
     },
     shouldRetry: (job: Job, error) => {
       if (job.type === 'ai_process') {
         return shouldRetryAIError(error)
+      }
+      if (job.type === 'embed_process') {
+        return shouldRetryEmbedError(error)
       }
       return true
     },
@@ -53,6 +60,17 @@ export function startWorker(config: WorkerConfig): void {
         const db = getDb()
         failItem(db, job.item_id, error.message)
         publishItemUpdated(db, job.item_id, job.type === 'ai_process' ? 'ai' : 'fetch')
+      }
+
+      if (job.type === 'embed_process') {
+        const db = getDb()
+        failBookmarkImportEntryByItemId(db, {
+          itemId: job.item_id,
+          errorCode: isUserEmbeddingConfigMissingError(error)
+            ? 'EMBEDDING_CONFIG_MISSING'
+            : 'EMBEDDING_FAILED',
+          errorMessage: error.message.slice(0, 500),
+        })
       }
     },
     logger,

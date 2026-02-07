@@ -7,6 +7,8 @@ import { getAllTagNames, setItemTags } from '../../features/tags/tags.db.js'
 import { publishItemUpdated } from '../../features/events/events.bus.js'
 import { replaceItemFts } from '../../features/items/items.fts.js'
 import { resolveAIConfig } from '../../config/ai.resolver.js'
+import { generateId } from '../../lib/utils.js'
+import { setBookmarkImportEntryStatusByItemId } from '../../features/imports/imports.db.js'
 
 export async function processAIJob(db: Database, job: Job): Promise<void> {
   const item = getItemById(db, job.item_id)
@@ -27,6 +29,7 @@ export async function processAIJob(db: Database, job: Job): Promise<void> {
 
   console.log(`[ai] Processing ${item.url}`)
   try {
+    setBookmarkImportEntryStatusByItemId(db, item.id, 'ai_processing')
     setJobProgress(db, job.id, { stage: 'ai:generating', percent: 10 })
 
     const mode = item.ai_mode === 'user' ? 'user' : 'server'
@@ -56,6 +59,23 @@ export async function processAIJob(db: Database, job: Job): Promise<void> {
     })()
 
     setJobProgress(db, job.id, { stage: 'ai:done', percent: 100 })
+
+    const importEntry = db
+      .prepare('SELECT id FROM bookmark_import_entries WHERE item_id = ?')
+      .get(item.id) as { id: string } | undefined
+
+    if (importEntry) {
+      const embedJobId = generateId('job')
+      const now = new Date().toISOString()
+      db.prepare(
+        `
+          INSERT INTO jobs (id, item_id, type, state, attempt, run_after, created_at, updated_at)
+          VALUES (?, ?, 'embed_process', 'pending', 0, ?, ?, ?)
+        `
+      ).run(embedJobId, item.id, now, now, now)
+      setBookmarkImportEntryStatusByItemId(db, item.id, 'embedding', now)
+      console.log(`[ai] Created embed_process job ${embedJobId} for item ${item.id}`)
+    }
 
     console.log(`[ai] Completed ${item.url} - Tags: ${mergedTags.join(', ')}`)
 
