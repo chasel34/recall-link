@@ -41,6 +41,7 @@ export function applySchema(db: Db, schemaFilePath: string) {
   migrateItemsUserIdColumn(db)
   migrateItemsAiModeColumn(db)
   migrateItemsAiModeValues(db)
+  migrateItemsImportSourceColumns(db)
   migrateTagsUserIdColumn(db)
   migrateItemsUrlNormalizedUnique(db)
   migrateTagsNameUnique(db)
@@ -182,6 +183,27 @@ function migrateItemsAiModeValues(db: Db): void {
   }
 }
 
+function migrateItemsImportSourceColumns(db: Db): void {
+  if (!tableExists(db, 'items')) return
+  const columns = db.prepare(`PRAGMA table_info('items')`).all() as Array<{ name: string }>
+
+  const addIfMissing = (colName: string, colDef: string) => {
+    if (!columns.some((c) => c.name === colName)) {
+      console.log(`[db] Migrating items table: adding ${colName} column`)
+      db.exec(`ALTER TABLE items ADD COLUMN ${colName} ${colDef}`)
+    }
+  }
+
+  addIfMissing('source', `TEXT NOT NULL DEFAULT 'manual' CHECK (source IN ('manual', 'bookmark_import'))`)
+  addIfMissing('import_id', 'TEXT')
+  addIfMissing('import_entry_id', 'TEXT')
+
+  const columnsAfter = db.prepare(`PRAGMA table_info('items')`).all() as Array<{ name: string }>
+  if (columnsAfter.some((c) => c.name === 'source')) {
+    db.exec(`UPDATE items SET source = 'manual' WHERE source IS NULL`)
+  }
+}
+
 function migrateTagsUserIdColumn(db: Db): void {
   if (!tableExists(db, 'tags')) return
   const columns = db.prepare(`PRAGMA table_info('tags')`).all() as Array<{ name: string }>
@@ -218,11 +240,15 @@ function migrateItemsUrlNormalizedUnique(db: Db): void {
         CREATE TABLE items_new (
           id TEXT PRIMARY KEY,
           user_id TEXT,
+          source TEXT NOT NULL DEFAULT 'manual' CHECK (source IN ('manual', 'bookmark_import')),
+          import_id TEXT,
+          import_entry_id TEXT,
           url TEXT NOT NULL,
           url_normalized TEXT NOT NULL,
           title TEXT,
           domain TEXT,
           status TEXT NOT NULL,
+          ai_mode TEXT CHECK (ai_mode IN ('server', 'user')),
           error_code TEXT,
           error_message TEXT,
           clean_text TEXT,
@@ -238,11 +264,11 @@ function migrateItemsUrlNormalizedUnique(db: Db): void {
 
       db.exec(`
         INSERT INTO items_new (
-          id, user_id, url, url_normalized, title, domain, status, error_code, error_message,
+          id, user_id, source, import_id, import_entry_id, url, url_normalized, title, domain, status, ai_mode, error_code, error_message,
           clean_text, clean_html, summary, summary_source, note, created_at, updated_at, processed_at
         )
         SELECT
-          id, user_id, url, url_normalized, title, domain, status, error_code, error_message,
+          id, user_id, COALESCE(source, 'manual'), import_id, import_entry_id, url, url_normalized, title, domain, status, ai_mode, error_code, error_message,
           clean_text, clean_html, summary, summary_source, note, created_at, updated_at, processed_at
         FROM items
       `)

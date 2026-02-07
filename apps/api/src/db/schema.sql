@@ -3,6 +3,9 @@ CREATE TABLE IF NOT EXISTS items (
   id TEXT PRIMARY KEY,
   -- Nullable for now. Future: populate from auth context.
   user_id TEXT,
+  source TEXT NOT NULL DEFAULT 'manual' CHECK (source IN ('manual', 'bookmark_import')),
+  import_id TEXT,
+  import_entry_id TEXT,
   url TEXT NOT NULL,
   url_normalized TEXT NOT NULL,
   title TEXT,
@@ -23,6 +26,62 @@ CREATE TABLE IF NOT EXISTS items (
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_items_user_id_url_normalized ON items(user_id, url_normalized);
 CREATE INDEX IF NOT EXISTS idx_items_user_id_created_at ON items(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_items_import_id ON items(import_id);
+CREATE INDEX IF NOT EXISTS idx_items_import_entry_id ON items(import_entry_id);
+
+-- bookmark imports
+CREATE TABLE IF NOT EXISTS bookmark_imports (
+  id TEXT PRIMARY KEY,
+  user_id TEXT,
+  source_type TEXT NOT NULL CHECK (source_type IN ('bookmarks_html')),
+  file_name TEXT NOT NULL,
+  file_size_bytes INTEGER NOT NULL,
+  file_sha256 TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('queued', 'processing', 'completed', 'completed_with_errors', 'failed')),
+  total_count INTEGER NOT NULL DEFAULT 0,
+  created_count INTEGER NOT NULL DEFAULT 0,
+  duplicate_existing_count INTEGER NOT NULL DEFAULT 0,
+  duplicate_in_file_count INTEGER NOT NULL DEFAULT 0,
+  invalid_count INTEGER NOT NULL DEFAULT 0,
+  failed_count INTEGER NOT NULL DEFAULT 0,
+  done_count INTEGER NOT NULL DEFAULT 0,
+  started_at TEXT,
+  finished_at TEXT,
+  error_message TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_bookmark_imports_user_id_created_at ON bookmark_imports(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_bookmark_imports_user_id_status_created_at ON bookmark_imports(user_id, status, created_at);
+CREATE INDEX IF NOT EXISTS idx_bookmark_imports_user_id_file_sha256 ON bookmark_imports(user_id, file_sha256);
+
+-- bookmark import entries
+CREATE TABLE IF NOT EXISTS bookmark_import_entries (
+  id TEXT PRIMARY KEY,
+  import_id TEXT NOT NULL,
+  user_id TEXT,
+  index_in_file INTEGER NOT NULL,
+  folder_path TEXT,
+  source_tags TEXT,
+  source_note TEXT,
+  url_raw TEXT NOT NULL,
+  url_normalized TEXT,
+  title_raw TEXT,
+  status TEXT NOT NULL CHECK (status IN ('created', 'duplicate_existing', 'duplicate_in_file', 'invalid', 'queued', 'fetching', 'ai_processing', 'embedding', 'done', 'failed')),
+  item_id TEXT,
+  error_code TEXT,
+  error_message TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (import_id) REFERENCES bookmark_imports(id) ON DELETE CASCADE,
+  FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE SET NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_bookmark_import_entries_import_id_index_in_file ON bookmark_import_entries(import_id, index_in_file);
+CREATE INDEX IF NOT EXISTS idx_bookmark_import_entries_import_id_status_index_in_file ON bookmark_import_entries(import_id, status, index_in_file);
+CREATE INDEX IF NOT EXISTS idx_bookmark_import_entries_user_id_created_at ON bookmark_import_entries(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_bookmark_import_entries_item_id ON bookmark_import_entries(item_id);
 
 -- tags
 CREATE TABLE IF NOT EXISTS tags (
