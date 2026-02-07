@@ -131,11 +131,22 @@ export interface AiSettingsGeminiConfig {
   apiKey?: string
 }
 
+export interface AiSettingsArkConfig {
+  embeddingModel: string
+  baseUrl?: string
+  apiKey?: string
+}
+
 export interface AiSettings {
   mode: AiMode
   provider: AiProvider
   gemini: {
     model: string
+    baseUrl: string
+    hasApiKey: boolean
+  }
+  ark: {
+    embeddingModel: string
     baseUrl: string
     hasApiKey: boolean
   }
@@ -146,11 +157,13 @@ export type UpdateAiSettingsRequest =
       mode: 'server'
       provider: 'gemini'
       gemini?: Partial<AiSettingsGeminiConfig>
+      ark?: Partial<AiSettingsArkConfig>
     }
   | {
       mode: 'user'
       provider: 'gemini'
       gemini: AiSettingsGeminiConfig
+      ark?: Partial<AiSettingsArkConfig>
     }
 
 export type UiStatus = 'running' | 'scheduled' | 'stale_lock' | 'queued'

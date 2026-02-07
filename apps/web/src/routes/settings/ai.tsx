@@ -2,7 +2,12 @@ import React from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { AlertTriangle, Cpu, Globe, Key, Save, Trash2, X, Play } from 'lucide-react'
 import { Button, Card, CardBody, CardHeader, Input, Spinner } from '@/components/base'
-import { useAiSettings, DEFAULT_GEMINI_MODEL } from '@/hooks/ai-settings'
+import {
+  useAiSettings,
+  DEFAULT_ARK_BASE_URL,
+  DEFAULT_ARK_EMBEDDING_MODEL,
+  DEFAULT_GEMINI_MODEL,
+} from '@/hooks/ai-settings'
 import { addToast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import type { AiMode } from '@/lib/api-client'
@@ -17,6 +22,12 @@ type DraftGemini = {
   model: string
 }
 
+type DraftArk = {
+  apiKey: string
+  baseURL: string
+  embeddingModel: string
+}
+
 function SettingsAiPage() {
   const { settings, isLoading, isError, update, test, isUpdating, isTesting } = useAiSettings()
 
@@ -25,6 +36,11 @@ function SettingsAiPage() {
     apiKey: '',
     baseURL: '',
     model: DEFAULT_GEMINI_MODEL,
+  })
+  const [draftArk, setDraftArk] = React.useState<DraftArk>({
+    apiKey: '',
+    baseURL: DEFAULT_ARK_BASE_URL,
+    embeddingModel: DEFAULT_ARK_EMBEDDING_MODEL,
   })
   const [submitAttempted, setSubmitAttempted] = React.useState(false)
 
@@ -35,6 +51,11 @@ function SettingsAiPage() {
       apiKey: '', // Never fill API key from server
       baseURL: settings.gemini.baseUrl,
       model: settings.gemini.model,
+    })
+    setDraftArk({
+      apiKey: '',
+      baseURL: settings.ark.baseUrl,
+      embeddingModel: settings.ark.embeddingModel,
     })
   }, [settings])
 
@@ -58,14 +79,22 @@ function SettingsAiPage() {
   const draftBaseURL = draftGemini.baseURL.trim()
   const savedModel = settings.gemini.model
   const draftModel = draftGemini.model.trim()
+  const savedArkBaseURL = (settings.ark.baseUrl ?? '').trim()
+  const draftArkBaseURL = draftArk.baseURL.trim()
+  const savedArkModel = settings.ark.embeddingModel
+  const draftArkModel = draftArk.embeddingModel.trim()
 
   const isDirty =
     draftMode !== settings.mode ||
     draftGemini.apiKey !== '' ||
+    draftArk.apiKey !== '' ||
     draftBaseURL !== savedBaseURL ||
-    draftModel !== savedModel
+    draftModel !== savedModel ||
+    draftArkBaseURL !== savedArkBaseURL ||
+    draftArkModel !== savedArkModel
 
   const missingApiKey = draftMode === 'user' && !settings.gemini.hasApiKey && !draftGemini.apiKey.trim()
+  const missingArkApiKey = draftMode === 'user' && !settings.ark.hasApiKey && !draftArk.apiKey.trim()
 
   const onCancel = () => {
     setDraftMode(settings.mode)
@@ -73,6 +102,11 @@ function SettingsAiPage() {
       apiKey: '',
       baseURL: settings.gemini.baseUrl,
       model: settings.gemini.model,
+    })
+    setDraftArk({
+      apiKey: '',
+      baseURL: settings.ark.baseUrl,
+      embeddingModel: settings.ark.embeddingModel,
     })
     setSubmitAttempted(false)
   }
@@ -84,11 +118,14 @@ function SettingsAiPage() {
        if (!draftGemini.apiKey.trim() && !settings.gemini.hasApiKey) {
          return
        }
+       if (!draftArk.apiKey.trim() && !settings.ark.hasApiKey) {
+         return
+       }
     }
 
     const payload =
       draftMode === 'server'
-        ? { mode: 'server' as const, provider: 'gemini' as const }
+        ? { mode: 'server' as const, provider: 'gemini' as const, ark: {} }
         : {
             mode: 'user' as const,
             provider: 'gemini' as const,
@@ -96,6 +133,11 @@ function SettingsAiPage() {
               ...(draftGemini.apiKey.trim() ? { apiKey: draftGemini.apiKey.trim() } : {}),
               model: draftGemini.model.trim() || DEFAULT_GEMINI_MODEL,
               baseUrl: draftGemini.baseURL.trim(),
+            },
+            ark: {
+              ...(draftArk.apiKey.trim() ? { apiKey: draftArk.apiKey.trim() } : {}),
+              embeddingModel: draftArk.embeddingModel.trim() || DEFAULT_ARK_EMBEDDING_MODEL,
+              baseUrl: draftArk.baseURL.trim(),
             }
           }
 
@@ -109,9 +151,13 @@ function SettingsAiPage() {
   }
 
   const onTest = () => {
-    if (draftMode === 'user' && !draftGemini.apiKey.trim()) {
+    if (draftMode === 'user' && !draftGemini.apiKey.trim() && !settings.gemini.hasApiKey) {
        addToast({ title: '需要 API Key', description: '请输入 API Key 进行测试', color: 'danger' })
        return
+    }
+    if (draftMode === 'user' && !draftArk.apiKey.trim() && !settings.ark.hasApiKey) {
+      addToast({ title: '需要 Ark API Key', description: '请输入 Ark API Key 进行测试', color: 'danger' })
+      return
     }
 
     const payload = {
@@ -121,6 +167,11 @@ function SettingsAiPage() {
         apiKey: draftGemini.apiKey.trim(),
         baseUrl: draftGemini.baseURL.trim(),
         model: draftGemini.model.trim() || DEFAULT_GEMINI_MODEL,
+      },
+      ark: {
+        apiKey: draftArk.apiKey.trim(),
+        baseUrl: draftArk.baseURL.trim(),
+        embeddingModel: draftArk.embeddingModel.trim() || DEFAULT_ARK_EMBEDDING_MODEL,
       }
     }
     
@@ -206,7 +257,7 @@ function SettingsAiPage() {
                 <div className="text-sm">
                   <p className="font-medium mb-1">安全提醒</p>
                   <p className="opacity-90">
-                    API Key 将加密存储在服务器上。
+                    Gemini 与 Ark API Key 都会加密存储在服务器上。
                   </p>
                 </div>
               </div>
@@ -273,6 +324,72 @@ function SettingsAiPage() {
                     />
                   </div>
                 </div>
+
+                <div className="space-y-3 pt-2 border-t border-border/60">
+                  <div className="text-sm font-medium ml-1">Ark Embedding（用于语义检索）</div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="ark-api-key" className="text-sm font-medium ml-1">
+                      Ark API Key
+                    </label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="ark-api-key"
+                        type="password"
+                        placeholder={settings.ark.hasApiKey ? '已设置 (输入新 Key 以覆盖)' : 'ark-...'}
+                        value={draftArk.apiKey}
+                        onValueChange={(val) => setDraftArk((s) => ({ ...s, apiKey: val }))}
+                        startContent={<Key className="w-4 h-4" />}
+                        className="font-mono"
+                        isInvalid={submitAttempted && missingArkApiKey}
+                        errorMessage={submitAttempted && missingArkApiKey ? '需要 Ark API Key' : null}
+                        data-testid="ark-api-key"
+                      />
+                      {draftArk.apiKey && (
+                        <Button
+                          isIconOnly
+                          variant="light"
+                          color="danger"
+                          className="flex-shrink-0"
+                          onPress={() => setDraftArk((s) => ({ ...s, apiKey: '' }))}
+                          aria-label="清除 Ark API Key"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label htmlFor="ark-base-url" className="text-sm font-medium ml-1">
+                        Ark Base URL
+                      </label>
+                      <Input
+                        id="ark-base-url"
+                        placeholder={DEFAULT_ARK_BASE_URL}
+                        value={draftArk.baseURL}
+                        onValueChange={(val) => setDraftArk((s) => ({ ...s, baseURL: val }))}
+                        className="font-mono text-sm"
+                        data-testid="ark-base-url"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="ark-model" className="text-sm font-medium ml-1">
+                        Embedding 模型
+                      </label>
+                      <Input
+                        id="ark-model"
+                        placeholder={DEFAULT_ARK_EMBEDDING_MODEL}
+                        value={draftArk.embeddingModel}
+                        onValueChange={(val) => setDraftArk((s) => ({ ...s, embeddingModel: val }))}
+                        className="font-mono text-sm"
+                        data-testid="ark-model"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -282,7 +399,10 @@ function SettingsAiPage() {
                {draftMode === 'user' && (
                  <Button
                    variant="light"
-                   isDisabled={!draftGemini.apiKey}
+                   isDisabled={
+                    (!draftGemini.apiKey && !settings.gemini.hasApiKey) ||
+                    (!draftArk.apiKey && !settings.ark.hasApiKey)
+                   }
                    startContent={isTesting ? <Spinner className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                    onPress={onTest}
                    data-testid="ai-config-test"

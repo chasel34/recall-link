@@ -3,6 +3,8 @@ import { apiClient, type UpdateAiSettingsRequest } from '@/lib/api-client'
 import { addToast } from '@/lib/toast'
 
 export const DEFAULT_GEMINI_MODEL = 'gemini-3-flash-preview'
+export const DEFAULT_ARK_BASE_URL = 'https://ark.cn-beijing.volces.com/api/v3'
+export const DEFAULT_ARK_EMBEDDING_MODEL = 'doubao-embedding-vision-251215'
 
 export const AI_SETTINGS_QUERY_KEY = ['ai-settings']
 
@@ -46,4 +48,3 @@ export function useAiSettings() {
     isTesting: testMutation.isPending,
   }
 }
-
