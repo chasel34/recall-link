@@ -15,6 +15,17 @@ vi.mock('../features/chat/chat.llm.js', () => {
   }
 })
 
+vi.mock('../features/chat/chat.retrieval.js', () => ({
+  retrieveChatSources: vi.fn(async () => [
+    {
+      item_id: 'item_test',
+      url: 'https://example.com/react',
+      title: 'React Tutorial',
+      snippet: 'React hooks are powerful',
+    },
+  ]),
+}))
+
 import { app } from '../app.js'
 import { streamChatAnswer } from '../features/chat/chat.llm.js'
 import { UserModelConfigMissingError } from '../config/ai.resolver.js'

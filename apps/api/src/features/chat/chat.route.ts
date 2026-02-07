@@ -21,7 +21,7 @@ import {
 import { retrieveChatSources } from './chat.retrieval.js'
 import { streamChatAnswer } from './chat.llm.js'
 import { getAuthUser, requireAuth } from '../auth/auth.middleware.js'
-import { isUserModelConfigMissingError } from '../../config/ai.resolver.js'
+import { isUserEmbeddingConfigMissingError, isUserModelConfigMissingError } from '../../config/ai.resolver.js'
 
 export const chatApp = new Hono()
 
@@ -85,7 +85,7 @@ chatApp.get('/sessions/:id/messages', zValidator('query', listChatMessagesQueryS
   return c.json({ messages })
 })
 
-chatApp.post('/sessions/:id/messages', zValidator('json', chatRequestSchema), (c) => {
+chatApp.post('/sessions/:id/messages', zValidator('json', chatRequestSchema), async (c) => {
   const db = getDb()
   const userId = getAuthUser(c).id
   const sessionId = c.req.param('id')
@@ -116,7 +116,18 @@ chatApp.post('/sessions/:id/messages', zValidator('json', chatRequestSchema), (c
     touchChatSession(db, sessionId, now)
   }
 
-  const sources = retrieveChatSources(db, userId, body.message)
+  let sources = [] as Awaited<ReturnType<typeof retrieveChatSources>>
+  try {
+    sources = await retrieveChatSources(db, userId, body.message)
+  } catch (error) {
+    if (isUserEmbeddingConfigMissingError(error)) {
+      return c.json({
+        error: 'USER_EMBEDDING_CONFIG_MISSING',
+        message: error.message,
+      }, 409)
+    }
+    throw error
+  }
   const assistantMessageId = generateId('msg')
 
   if (DEBUG_CHAT) {
@@ -187,7 +198,11 @@ chatApp.post('/sessions/:id/messages', zValidator('json', chatRequestSchema), (c
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      const errorCode = isUserModelConfigMissingError(error) ? 'USER_MODEL_CONFIG_MISSING' : 'AI_ERROR'
+      const errorCode = isUserModelConfigMissingError(error)
+        ? 'USER_MODEL_CONFIG_MISSING'
+        : isUserEmbeddingConfigMissingError(error)
+          ? 'USER_EMBEDDING_CONFIG_MISSING'
+          : 'AI_ERROR'
       try {
         await stream.writeSSE({ event: 'error', data: JSON.stringify({ error: errorCode, message }) })
       } catch {

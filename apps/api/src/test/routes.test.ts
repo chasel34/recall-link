@@ -8,7 +8,6 @@ import { registerTestUser } from './test-auth.js'
 describe('POST /api/items', () => {
   let db: Database.Database
   let cookie: string
-  let userId: string
 
   beforeEach(async () => {
     db = new Database(':memory:')
@@ -17,7 +16,6 @@ describe('POST /api/items', () => {
 
     const auth = await registerTestUser(app)
     cookie = auth.cookie
-    userId = auth.user.id
   })
 
   afterEach(() => {
