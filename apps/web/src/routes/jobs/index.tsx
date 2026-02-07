@@ -26,6 +26,12 @@ const STATUS_MAP: Record<UiStatus, { label: string; color: string; icon: any }> 
   stale_lock: { label: '锁过期', color: 'text-red-500 bg-red-500/10 border-red-500/20', icon: AlertCircle },
 }
 
+export const JOB_TYPE_LABEL_MAP: Record<string, string> = {
+  fetch: '抓取',
+  ai_process: 'AI分析',
+  embed_process: '向量化',
+}
+
 function StatusBadge({ status, lastErrorMessage }: { status: UiStatus; lastErrorMessage?: string | null }) {
   let config = STATUS_MAP[status] || { label: status, color: 'text-gray-500', icon: AlertCircle }
 
@@ -170,11 +176,14 @@ function JobsPage() {
                <FilterPill isActive={search.type === 'fetch'} onPress={() => setTypeFilter('fetch')}>
                  抓取
                </FilterPill>
-               <FilterPill isActive={search.type === 'ai_process'} onPress={() => setTypeFilter('ai_process')}>
-                 AI分析
-               </FilterPill>
-             </div>
-           </div>
+                <FilterPill isActive={search.type === 'ai_process'} onPress={() => setTypeFilter('ai_process')}>
+                  AI分析
+                </FilterPill>
+                <FilterPill isActive={search.type === 'embed_process'} onPress={() => setTypeFilter('embed_process')}>
+                  向量化
+                </FilterPill>
+              </div>
+            </div>
          </div>
        </div>
 
@@ -221,7 +230,7 @@ function JobsPage() {
                   <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                     <div className="min-w-[100px] flex flex-col gap-2">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded uppercase">{job.type}</span>
+                        <span className="font-mono text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded uppercase">{JOB_TYPE_LABEL_MAP[job.type] || job.type}</span>
                         <StatusBadge status={job.ui_status} lastErrorMessage={job.last_error_message} />
                       </div>
                       <div className="text-xs text-muted-foreground flex items-center gap-1">

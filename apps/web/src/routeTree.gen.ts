@@ -16,9 +16,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as JobsIndexRouteImport } from './routes/jobs/index'
 import { Route as ItemsIndexRouteImport } from './routes/items/index'
+import { Route as ImportsIndexRouteImport } from './routes/imports/index'
 import { Route as ChatIndexRouteImport } from './routes/chat/index'
 import { Route as SettingsAiRouteImport } from './routes/settings/ai'
 import { Route as ItemsIdRouteImport } from './routes/items/$id'
+import { Route as ImportsIdRouteImport } from './routes/imports/$id'
 import { Route as ChatIdRouteImport } from './routes/chat/$id'
 import { Route as ItemsTagsTagRouteImport } from './routes/items/tags/$tag'
 
@@ -57,6 +59,11 @@ const ItemsIndexRoute = ItemsIndexRouteImport.update({
   path: '/items/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ImportsIndexRoute = ImportsIndexRouteImport.update({
+  id: '/imports/',
+  path: '/imports/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ChatIndexRoute = ChatIndexRouteImport.update({
   id: '/chat/',
   path: '/chat/',
@@ -70,6 +77,11 @@ const SettingsAiRoute = SettingsAiRouteImport.update({
 const ItemsIdRoute = ItemsIdRouteImport.update({
   id: '/items/$id',
   path: '/items/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ImportsIdRoute = ImportsIdRouteImport.update({
+  id: '/imports/$id',
+  path: '/imports/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChatIdRoute = ChatIdRouteImport.update({
@@ -89,9 +101,11 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/settings': typeof SettingsRouteWithChildren
   '/chat/$id': typeof ChatIdRoute
+  '/imports/$id': typeof ImportsIdRoute
   '/items/$id': typeof ItemsIdRoute
   '/settings/ai': typeof SettingsAiRoute
   '/chat/': typeof ChatIndexRoute
+  '/imports/': typeof ImportsIndexRoute
   '/items/': typeof ItemsIndexRoute
   '/jobs/': typeof JobsIndexRoute
   '/settings/': typeof SettingsIndexRoute
@@ -102,9 +116,11 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/chat/$id': typeof ChatIdRoute
+  '/imports/$id': typeof ImportsIdRoute
   '/items/$id': typeof ItemsIdRoute
   '/settings/ai': typeof SettingsAiRoute
   '/chat': typeof ChatIndexRoute
+  '/imports': typeof ImportsIndexRoute
   '/items': typeof ItemsIndexRoute
   '/jobs': typeof JobsIndexRoute
   '/settings': typeof SettingsIndexRoute
@@ -117,9 +133,11 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/settings': typeof SettingsRouteWithChildren
   '/chat/$id': typeof ChatIdRoute
+  '/imports/$id': typeof ImportsIdRoute
   '/items/$id': typeof ItemsIdRoute
   '/settings/ai': typeof SettingsAiRoute
   '/chat/': typeof ChatIndexRoute
+  '/imports/': typeof ImportsIndexRoute
   '/items/': typeof ItemsIndexRoute
   '/jobs/': typeof JobsIndexRoute
   '/settings/': typeof SettingsIndexRoute
@@ -133,9 +151,11 @@ export interface FileRouteTypes {
     | '/register'
     | '/settings'
     | '/chat/$id'
+    | '/imports/$id'
     | '/items/$id'
     | '/settings/ai'
     | '/chat/'
+    | '/imports/'
     | '/items/'
     | '/jobs/'
     | '/settings/'
@@ -146,9 +166,11 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/chat/$id'
+    | '/imports/$id'
     | '/items/$id'
     | '/settings/ai'
     | '/chat'
+    | '/imports'
     | '/items'
     | '/jobs'
     | '/settings'
@@ -160,9 +182,11 @@ export interface FileRouteTypes {
     | '/register'
     | '/settings'
     | '/chat/$id'
+    | '/imports/$id'
     | '/items/$id'
     | '/settings/ai'
     | '/chat/'
+    | '/imports/'
     | '/items/'
     | '/jobs/'
     | '/settings/'
@@ -175,8 +199,10 @@ export interface RootRouteChildren {
   RegisterRoute: typeof RegisterRoute
   SettingsRoute: typeof SettingsRouteWithChildren
   ChatIdRoute: typeof ChatIdRoute
+  ImportsIdRoute: typeof ImportsIdRoute
   ItemsIdRoute: typeof ItemsIdRoute
   ChatIndexRoute: typeof ChatIndexRoute
+  ImportsIndexRoute: typeof ImportsIndexRoute
   ItemsIndexRoute: typeof ItemsIndexRoute
   JobsIndexRoute: typeof JobsIndexRoute
   ItemsTagsTagRoute: typeof ItemsTagsTagRoute
@@ -233,6 +259,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ItemsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/imports/': {
+      id: '/imports/'
+      path: '/imports'
+      fullPath: '/imports/'
+      preLoaderRoute: typeof ImportsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/chat/': {
       id: '/chat/'
       path: '/chat'
@@ -252,6 +285,13 @@ declare module '@tanstack/react-router' {
       path: '/items/$id'
       fullPath: '/items/$id'
       preLoaderRoute: typeof ItemsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/imports/$id': {
+      id: '/imports/$id'
+      path: '/imports/$id'
+      fullPath: '/imports/$id'
+      preLoaderRoute: typeof ImportsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/chat/$id': {
@@ -291,8 +331,10 @@ const rootRouteChildren: RootRouteChildren = {
   RegisterRoute: RegisterRoute,
   SettingsRoute: SettingsRouteWithChildren,
   ChatIdRoute: ChatIdRoute,
+  ImportsIdRoute: ImportsIdRoute,
   ItemsIdRoute: ItemsIdRoute,
   ChatIndexRoute: ChatIndexRoute,
+  ImportsIndexRoute: ImportsIndexRoute,
   ItemsIndexRoute: ItemsIndexRoute,
   JobsIndexRoute: JobsIndexRoute,
   ItemsTagsTagRoute: ItemsTagsTagRoute,

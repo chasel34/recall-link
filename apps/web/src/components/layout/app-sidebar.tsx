@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
-import { FileText, MessageSquare, Settings, LogOut, Activity } from 'lucide-react'
+import { FileText, MessageSquare, Settings, LogOut, Activity, Upload } from 'lucide-react'
 import { Button } from "@/components/base"
 import { ReactNode } from 'react'
 import React from 'react'
@@ -22,6 +22,7 @@ export function AppSidebar({ onItemClick, children }: AppSidebarProps) {
   const menuItems = [
     { name: '记录', path: '/items', icon: FileText, disabled: false },
     { name: '任务', path: '/jobs', icon: Activity, disabled: false },
+    { name: '导入', path: '/imports', icon: Upload, disabled: false },
     { name: '对话', path: '/chat', icon: MessageSquare, disabled: false },
     { name: '设置', path: '/settings/ai', icon: Settings, disabled: false },
   ]

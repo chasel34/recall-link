@@ -199,6 +199,72 @@ export interface ListJobsResponse {
   offset: number
 }
 
+export interface ImportStats {
+  total_count: number
+  created_count: number
+  duplicate_existing_count: number
+  duplicate_in_file_count: number
+  invalid_count: number
+  failed_count: number
+  done_count: number
+}
+
+export interface Import {
+  id: string
+  source_type: 'bookmarks_html'
+  file_name: string
+  file_size_bytes: number
+  file_sha256: string
+  status: 'queued' | 'processing' | 'completed' | 'completed_with_errors' | 'failed'
+  stats: ImportStats
+  progress?: {
+    total_count: number
+    done_count: number
+    pending_count: number
+    failed_count: number
+    progress_percent: number
+  }
+  entry_status_counts?: Record<string, number>
+  started_at: string | null
+  finished_at: string | null
+  error_message: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ImportEntry {
+  id: string
+  import_id: string
+  index_in_file: number
+  folder_path: string | null
+  source_tags: string | null
+  source_note: string | null
+  url_raw: string
+  url_normalized: string | null
+  title_raw: string | null
+  status: string
+  item_id: string | null
+  error_code: string | null
+  error_message: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ListImportsResponse {
+  imports: Import[]
+  total: number
+  limit: number
+  offset: number
+}
+
+export interface ListImportEntriesResponse {
+  import_id: string
+  entries: ImportEntry[]
+  total: number
+  limit: number
+  offset: number
+}
+
 class ApiClient {
   private async request<T>(path: string, options?: RequestInit): Promise<T> {
     const response = await fetch(`${API_BASE}${path}`, {
@@ -406,6 +472,50 @@ class ApiClient {
         opts.onError?.({ error: 'NETWORK_ERROR', message: err instanceof Error ? err.message : String(err) })
       },
     })
+  }
+  async listImports(params: { limit?: number; offset?: number; status?: string } = {}): Promise<ListImportsResponse> {
+    const searchParams = new URLSearchParams()
+    if (params.limit) searchParams.set('limit', params.limit.toString())
+    if (params.offset) searchParams.set('offset', params.offset.toString())
+    if (params.status) searchParams.set('status', params.status)
+
+    const query = searchParams.toString()
+    return this.request<ListImportsResponse>(`/api/imports${query ? `?${query}` : ''}`)
+  }
+
+  async getImport(id: string): Promise<Import> {
+    return this.request<Import>(`/api/imports/${id}`)
+  }
+
+  async listImportEntries(id: string, params: { limit?: number; offset?: number; status?: string } = {}): Promise<ListImportEntriesResponse> {
+    const searchParams = new URLSearchParams()
+    if (params.limit) searchParams.set('limit', params.limit.toString())
+    if (params.offset) searchParams.set('offset', params.offset.toString())
+    if (params.status) searchParams.set('status', params.status)
+
+    const query = searchParams.toString()
+    return this.request<ListImportEntriesResponse>(`/api/imports/${id}/entries${query ? `?${query}` : ''}`)
+  }
+
+  async importBookmarks(file: File, options: { ai_mode?: 'server' | 'user' } = {}): Promise<Import> {
+    const formData = new FormData()
+    formData.append('file', file)
+    if (options.ai_mode) {
+      formData.append('ai_mode', options.ai_mode)
+    }
+
+    const response = await fetch(`${API_BASE}/api/imports/bookmarks`, {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
+    })
+
+    if (!response.ok) {
+      const data = (await response.json().catch(() => ({}))) as ApiErrorData
+      throw new ApiError(response.status, data.message || `HTTP ${response.status}`, data)
+    }
+
+    return response.json()
   }
 }
 
