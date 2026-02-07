@@ -9,3 +9,4 @@ Project documentation and implementation notes.
 | Product requirements | `docs/prd.md` | core feature intent, terminology |
 | Implementation plans | `docs/plans/*` | historical design/implementation notes |
 | AI modes | `docs/local-ai.md` | server vs user (credentials), settings + wiring |
+| Bookmark Import | `docs/bookmark-import.md` | Netscape HTML import flow, API, and troubleshooting |

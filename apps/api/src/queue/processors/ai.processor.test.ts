@@ -83,6 +83,90 @@ describe('ai.processor', () => {
         .all('item_test') as { name: string }[]
 
       expect(tags.map((tag) => tag.name)).toEqual(['React', 'TypeScript', '前端'])
+
+      const embedJob = db
+        .prepare("SELECT id FROM jobs WHERE item_id = ? AND type = 'embed_process'")
+        .get('item_test') as { id: string } | undefined
+      expect(embedJob).toBeUndefined()
+    })
+
+    it('enqueues embed_process for bookmark import items', async () => {
+      const { handleAiProcess } = await import('@recall-link/jobs-handlers')
+      vi.mocked(handleAiProcess).mockResolvedValue({
+        tags: ['React'],
+        summary: 'Imported summary',
+      })
+
+      const timestamp = new Date().toISOString()
+      db.prepare(
+        `
+          INSERT INTO bookmark_imports (
+            id, user_id, source_type, file_name, file_size_bytes, file_sha256, status,
+            total_count, created_count, duplicate_existing_count, duplicate_in_file_count,
+            invalid_count, failed_count, done_count, started_at, finished_at, error_message,
+            created_at, updated_at
+          )
+          VALUES (?, ?, 'bookmarks_html', 'bookmarks.html', 123, 'sha', 'processing', 1, 1, 0, 0, 0, 0, 0, ?, NULL, NULL, ?, ?)
+        `
+      ).run('import_1', userId, timestamp, timestamp, timestamp)
+
+      db.prepare('UPDATE items SET source = ?, import_id = ?, import_entry_id = ? WHERE id = ?').run(
+        'bookmark_import',
+        'import_1',
+        'import_entry_1',
+        'item_test'
+      )
+
+      db.prepare(
+        `
+          INSERT INTO bookmark_import_entries (
+            id, import_id, user_id, index_in_file, folder_path, source_tags, source_note,
+            url_raw, url_normalized, title_raw, status, item_id, error_code, error_message,
+            created_at, updated_at
+          )
+          VALUES (?, ?, ?, 0, NULL, NULL, NULL, ?, ?, ?, 'ai_processing', ?, NULL, NULL, ?, ?)
+        `
+      ).run(
+        'import_entry_1',
+        'import_1',
+        userId,
+        'https://example.com',
+        'https://example.com',
+        'Imported item',
+        'item_test',
+        timestamp,
+        timestamp
+      )
+
+      const job: Job = {
+        id: 'job_ai_import',
+        item_id: 'item_test',
+        type: 'ai_process',
+        state: 'pending',
+        attempt: 0,
+        run_after: timestamp,
+        locked_by: 'worker_1',
+        lock_expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+        last_error_code: null,
+        last_error_message: null,
+        created_at: timestamp,
+        updated_at: timestamp,
+        started_at: timestamp,
+        finished_at: null,
+      }
+
+      await processAIJob(db, job)
+
+      const embedJob = db
+        .prepare("SELECT item_id, type, state FROM jobs WHERE item_id = ? AND type = 'embed_process'")
+        .get('item_test') as { item_id: string; type: string; state: string } | undefined
+      expect(embedJob).toBeTruthy()
+      expect(embedJob?.item_id).toBe('item_test')
+
+      const entry = db
+        .prepare('SELECT status FROM bookmark_import_entries WHERE id = ?')
+        .get('import_entry_1') as { status: string }
+      expect(entry.status).toBe('embedding')
     })
 
     it('should throw if item not found', async () => {

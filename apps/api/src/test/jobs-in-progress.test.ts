@@ -155,6 +155,7 @@ describe('GET /api/jobs/in-progress', () => {
 
     createJob('job1', 'fetch', nowIso)
     createJob('job2', 'ai_process', nowIso)
+    createJob('job3', 'embed_process', nowIso)
 
     const resType = await app.request('/api/jobs/in-progress?type=fetch', {
       headers: { Cookie: cookie },
@@ -163,10 +164,17 @@ describe('GET /api/jobs/in-progress', () => {
     expect(dataType.jobs).toHaveLength(1)
     expect(dataType.jobs[0].id).toBe('job1')
 
+    const resEmbedType = await app.request('/api/jobs/in-progress?type=embed_process', {
+      headers: { Cookie: cookie },
+    })
+    const dataEmbedType = await resEmbedType.json()
+    expect(dataEmbedType.jobs).toHaveLength(1)
+    expect(dataEmbedType.jobs[0].id).toBe('job3')
+
     const resStatus = await app.request('/api/jobs/in-progress?status=queued', {
       headers: { Cookie: cookie },
     })
     const dataStatus = await resStatus.json()
-    expect(dataStatus.jobs).toHaveLength(2)
+    expect(dataStatus.jobs).toHaveLength(3)
   })
 })
