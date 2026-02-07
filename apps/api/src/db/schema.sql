@@ -66,12 +66,31 @@ CREATE TABLE IF NOT EXISTS user_model_configs (
   base_url TEXT,
   model TEXT,
   api_key_enc TEXT,
+  ark_base_url TEXT,
+  ark_embedding_model TEXT,
+  ark_api_key_enc TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_user_model_configs_user_id ON user_model_configs(user_id);
+
+-- item embeddings
+CREATE TABLE IF NOT EXISTS item_embeddings (
+  item_id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  model TEXT NOT NULL,
+  dimensions INTEGER NOT NULL,
+  vector_json TEXT NOT NULL,
+  source_text_hash TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_item_embeddings_user_id ON item_embeddings(user_id);
 
 -- item-tags
 CREATE TABLE IF NOT EXISTS item_tags (

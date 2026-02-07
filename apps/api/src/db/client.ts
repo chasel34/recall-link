@@ -45,6 +45,7 @@ export function applySchema(db: Db, schemaFilePath: string) {
   migrateItemsUrlNormalizedUnique(db)
   migrateTagsNameUnique(db)
   migrateUserModelConfigsTable(db)
+  migrateUserModelConfigsArkColumns(db)
 
   for (const stmt of otherStatements) {
     db.exec(stmt)
@@ -308,12 +309,31 @@ function migrateUserModelConfigsTable(db: Db): void {
       base_url TEXT,
       model TEXT,
       api_key_enc TEXT,
+      ark_base_url TEXT,
+      ark_embedding_model TEXT,
+      ark_api_key_enc TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )
   `)
   db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_user_model_configs_user_id ON user_model_configs(user_id)`)
+}
+
+function migrateUserModelConfigsArkColumns(db: Db): void {
+  if (!tableExists(db, 'user_model_configs')) return
+  const columns = db.prepare(`PRAGMA table_info('user_model_configs')`).all() as Array<{ name: string }>
+
+  const addIfMissing = (colName: string, colDef: string) => {
+    if (!columns.some((c) => c.name === colName)) {
+      console.log(`[db] Migrating user_model_configs table: adding ${colName} column`)
+      db.exec(`ALTER TABLE user_model_configs ADD COLUMN ${colName} ${colDef}`)
+    }
+  }
+
+  addIfMissing('ark_base_url', 'TEXT')
+  addIfMissing('ark_embedding_model', 'TEXT')
+  addIfMissing('ark_api_key_enc', 'TEXT')
 }
 
 function withForeignKeysOff(db: Db, fn: () => void): void {

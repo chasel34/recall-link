@@ -9,6 +9,9 @@ export type UserModelConfig = {
   base_url: string | null
   model: string | null
   api_key_enc: string | null
+  ark_base_url: string | null
+  ark_embedding_model: string | null
+  ark_api_key_enc: string | null
   created_at: string
   updated_at: string
 }
@@ -18,7 +21,19 @@ export function getUserModelConfig(db: Database, userId: string): UserModelConfi
     db
       .prepare(
         `
-          SELECT id, user_id, mode, provider, base_url, model, api_key_enc, created_at, updated_at
+          SELECT
+            id,
+            user_id,
+            mode,
+            provider,
+            base_url,
+            model,
+            api_key_enc,
+            ark_base_url,
+            ark_embedding_model,
+            ark_api_key_enc,
+            created_at,
+            updated_at
           FROM user_model_configs
           WHERE user_id = ?
         `
@@ -36,6 +51,9 @@ export function upsertUserModelConfig(
     base_url: string | null
     model: string | null
     api_key_enc: string | null
+    ark_base_url: string | null
+    ark_embedding_model: string | null
+    ark_api_key_enc: string | null
     now?: string
   }
 ): UserModelConfig {
@@ -52,16 +70,22 @@ export function upsertUserModelConfig(
         base_url,
         model,
         api_key_enc,
+        ark_base_url,
+        ark_embedding_model,
+        ark_api_key_enc,
         created_at,
         updated_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(user_id) DO UPDATE SET
         mode = excluded.mode,
         provider = excluded.provider,
         base_url = excluded.base_url,
         model = excluded.model,
         api_key_enc = excluded.api_key_enc,
+        ark_base_url = excluded.ark_base_url,
+        ark_embedding_model = excluded.ark_embedding_model,
+        ark_api_key_enc = excluded.ark_api_key_enc,
         updated_at = excluded.updated_at
     `
   ).run(
@@ -72,6 +96,9 @@ export function upsertUserModelConfig(
     input.base_url,
     input.model,
     input.api_key_enc,
+    input.ark_base_url,
+    input.ark_embedding_model,
+    input.ark_api_key_enc,
     now,
     now
   )

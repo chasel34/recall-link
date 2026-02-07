@@ -3,5 +3,9 @@
   "gemini": {
     "baseURL": "http://127.0.0.1:8317/v1beta",
     "model": "gemini-3-flash-preview"
+  },
+  "ark": {
+    "baseURL": "https://ark.cn-beijing.volces.com/api/v3",
+    "embeddingModel": "doubao-embedding-vision-251215"
   }
 }

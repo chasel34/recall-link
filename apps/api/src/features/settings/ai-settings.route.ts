@@ -1,13 +1,14 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
-import { createGoogleGenerativeAI } from '@ai-sdk/google'
-import { generateText } from 'ai'
+import { testGeminiConfig } from '@recall-link/ai'
 import { getDb } from '../../db/context.js'
 import { getAuthUser, requireAuth } from '../auth/auth.middleware.js'
 import { encryptUserModelConfigApiKey } from '../../lib/user-model-config-crypto.js'
+import { DEFAULT_ARK_BASE_URL, DEFAULT_ARK_EMBEDDING_MODEL } from '../../config/ai.config.js'
 import {
   deleteUserModelConfig,
   getUserModelConfig,
+  type UserModelConfig,
   upsertUserModelConfig,
 } from './ai-settings.db.js'
 import { aiSettingsSchema } from './ai-settings.schema.js'
@@ -16,21 +17,30 @@ export const settingsApp = new Hono()
 
 settingsApp.use('*', requireAuth)
 
+function toAiSettingsResponse(config: UserModelConfig | null) {
+  return {
+    mode: config?.mode ?? 'server',
+    provider: 'gemini' as const,
+    gemini: {
+      model: config?.model ?? '',
+      baseUrl: config?.base_url ?? '',
+      hasApiKey: Boolean(config?.api_key_enc),
+    },
+    ark: {
+      embeddingModel: config?.ark_embedding_model ?? DEFAULT_ARK_EMBEDDING_MODEL,
+      baseUrl: config?.ark_base_url ?? DEFAULT_ARK_BASE_URL,
+      hasApiKey: Boolean(config?.ark_api_key_enc),
+    },
+  }
+}
+
 settingsApp.get('/ai', (c) => {
   try {
     const db = getDb()
     const userId = getAuthUser(c).id
     const config = getUserModelConfig(db, userId)
 
-    return c.json({
-      mode: config?.mode ?? 'server',
-      provider: 'gemini',
-      gemini: {
-        model: config?.model ?? '',
-        baseUrl: config?.base_url ?? '',
-        hasApiKey: Boolean(config?.api_key_enc),
-      },
-    })
+    return c.json(toAiSettingsResponse(config))
   } catch (error) {
     console.error('[GET /settings/ai] Error:', error)
     return c.json({ error: 'INTERNAL_ERROR', message: 'Failed to get AI settings' }, 500)
@@ -52,17 +62,12 @@ settingsApp.put('/ai', zValidator('json', aiSettingsSchema), (c) => {
         base_url: null,
         model: null,
         api_key_enc: null,
+        ark_base_url: null,
+        ark_embedding_model: null,
+        ark_api_key_enc: null,
       })
 
-      return c.json({
-        mode: record.mode,
-        provider: record.provider,
-        gemini: {
-          model: record.model ?? '',
-          baseUrl: record.base_url ?? '',
-          hasApiKey: Boolean(record.api_key_enc),
-        },
-      })
+      return c.json(toAiSettingsResponse(record))
     }
 
     const gemini = body.gemini ?? {}
@@ -84,6 +89,20 @@ settingsApp.put('/ai', zValidator('json', aiSettingsSchema), (c) => {
       )
     }
 
+    const ark = body.ark ?? {}
+    const arkBaseUrl = ark.baseUrl?.trim()
+    const arkEmbeddingModel = ark.embeddingModel?.trim()
+    const arkApiKey = ark.apiKey?.trim()
+
+    let ark_api_key_enc: string | null
+    if (arkApiKey) {
+      ark_api_key_enc = encryptUserModelConfigApiKey(arkApiKey)
+    } else if (existing?.ark_api_key_enc) {
+      ark_api_key_enc = existing.ark_api_key_enc
+    } else {
+      ark_api_key_enc = null
+    }
+
     const record = upsertUserModelConfig(db, {
       user_id: userId,
       mode: body.mode,
@@ -92,17 +111,13 @@ settingsApp.put('/ai', zValidator('json', aiSettingsSchema), (c) => {
         baseUrl === undefined ? (existing?.base_url ?? null) : baseUrl.length > 0 ? baseUrl : null,
       model: model ?? existing?.model ?? null,
       api_key_enc,
+      ark_base_url:
+        arkBaseUrl === undefined ? (existing?.ark_base_url ?? null) : arkBaseUrl.length > 0 ? arkBaseUrl : null,
+      ark_embedding_model: arkEmbeddingModel ?? existing?.ark_embedding_model ?? DEFAULT_ARK_EMBEDDING_MODEL,
+      ark_api_key_enc,
     })
 
-    return c.json({
-      mode: record.mode,
-      provider: record.provider,
-      gemini: {
-        model: record.model ?? '',
-        baseUrl: record.base_url ?? '',
-        hasApiKey: Boolean(record.api_key_enc),
-      },
-    })
+    return c.json(toAiSettingsResponse(record))
   } catch (error) {
     console.error('[PUT /settings/ai] Error:', error)
     return c.json({ error: 'INTERNAL_ERROR', message: 'Failed to update AI settings' }, 500)
@@ -125,13 +140,15 @@ settingsApp.post('/ai/test', zValidator('json', aiSettingsSchema), async (c) => 
   const body = c.req.valid('json')
   const gemini = body.gemini ?? {}
   const apiKey = gemini.apiKey ?? ''
-  const baseUrl = gemini.baseUrl?.trim() ?? ''
-  const baseURL = baseUrl.length > 0 ? baseUrl : undefined
-  const modelName = gemini.model ?? ''
+  const baseURL = gemini.baseUrl?.trim() ?? ''
+  const model = gemini.model ?? ''
 
   try {
-    const google = createGoogleGenerativeAI({ apiKey, baseURL })
-    await generateText({ model: google(modelName), prompt: 'Test', maxTokens: 1 })
+    await testGeminiConfig({
+      apiKey,
+      baseURL,
+      model,
+    })
     return c.json({ ok: true })
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)

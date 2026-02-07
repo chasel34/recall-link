@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { getAIConfig } from './ai.config.js'
+import {
+  DEFAULT_ARK_BASE_URL,
+  DEFAULT_ARK_EMBEDDING_MODEL,
+  getAIConfig,
+  getArkEmbeddingConfig,
+} from './ai.config.js'
 
 describe('ai.config', () => {
   const originalEnv = { ...process.env }
@@ -8,6 +13,9 @@ describe('ai.config', () => {
     delete process.env.GEMINI_BASE_URL
     delete process.env.GEMINI_API_KEY
     delete process.env.GEMINI_MODEL
+    delete process.env.ARK_BASE_URL
+    delete process.env.ARK_API_KEY
+    delete process.env.ARK_EMBEDDING_MODEL
   })
 
   afterEach(() => {
@@ -47,5 +55,28 @@ describe('ai.config', () => {
     expect(config.apiKey).toBe('env-key')
     expect(config.model).toBe('env-model')
     expect(config.baseURL).toBe('http://127.0.0.1:8317/v1beta')
+  })
+
+  it('should load ark embedding config from environment variables', () => {
+    process.env.ARK_BASE_URL = 'https://ark.test/v1'
+    process.env.ARK_API_KEY = 'ark-test-key'
+    process.env.ARK_EMBEDDING_MODEL = 'doubao-embedding-vision-251215'
+
+    const config = getArkEmbeddingConfig()
+    expect(config.baseURL).toBe('https://ark.test/v1')
+    expect(config.apiKey).toBe('ark-test-key')
+    expect(config.model).toBe('doubao-embedding-vision-251215')
+  })
+
+  it('should use ark defaults when optional values are missing', () => {
+    process.env.ARK_API_KEY = 'ark-test-key'
+
+    const config = getArkEmbeddingConfig()
+    expect(config.baseURL).toBe(DEFAULT_ARK_BASE_URL)
+    expect(config.model).toBe(DEFAULT_ARK_EMBEDDING_MODEL)
+  })
+
+  it('should throw if ark api key is missing', () => {
+    expect(() => getArkEmbeddingConfig()).toThrow('ARK_API_KEY')
   })
 })

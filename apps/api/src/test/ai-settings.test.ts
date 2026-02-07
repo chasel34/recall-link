@@ -3,12 +3,17 @@ import Database from 'better-sqlite3'
 import { applySchema, defaultSchemaPath } from '../db/client.js'
 import { setDb, closeDb } from '../db/context.js'
 import { registerTestUser } from './test-auth.js'
+import { DEFAULT_ARK_BASE_URL, DEFAULT_ARK_EMBEDDING_MODEL } from '../config/ai.config.js'
 
-vi.mock('ai', () => ({ generateText: vi.fn() }))
-vi.mock('@ai-sdk/google', () => ({ createGoogleGenerativeAI: vi.fn() }))
+vi.mock('@recall-link/ai', async () => {
+  const actual = await vi.importActual<typeof import('@recall-link/ai')>('@recall-link/ai')
+  return {
+    ...actual,
+    testGeminiConfig: vi.fn(),
+  }
+})
 
-import { generateText } from 'ai'
-import { createGoogleGenerativeAI } from '@ai-sdk/google'
+import { testGeminiConfig } from '@recall-link/ai'
 import { app } from '../app.js'
 
 const MASTER_KEY_HEX = '0000000000000000000000000000000000000000000000000000000000000000'
@@ -30,7 +35,6 @@ describe('ai settings routes', () => {
     process.env.USER_MODEL_CONFIG_MASTER_KEY = MASTER_KEY_HEX
 
     vi.clearAllMocks()
-    vi.mocked(createGoogleGenerativeAI).mockReturnValue(((modelName: string) => ({ modelName })) as any)
   })
 
   afterEach(() => {
@@ -51,6 +55,11 @@ describe('ai settings routes', () => {
       mode: 'server',
       provider: 'gemini',
       gemini: { model: '', baseUrl: '', hasApiKey: false },
+      ark: {
+        embeddingModel: DEFAULT_ARK_EMBEDDING_MODEL,
+        baseUrl: DEFAULT_ARK_BASE_URL,
+        hasApiKey: false,
+      },
     })
   })
 
@@ -61,7 +70,12 @@ describe('ai settings routes', () => {
       body: JSON.stringify({
         mode: 'user',
         provider: 'gemini',
-        gemini: { model: 'gemini-1.5-flash', baseUrl: '', apiKey: 'secret' },
+        gemini: { model: 'gemini-1.5-flash', baseUrl: '', apiKey: 'secret-gemini' },
+        ark: {
+          embeddingModel: 'doubao-embedding-vision-251215',
+          baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+          apiKey: 'secret-ark',
+        },
       }),
     })
 
@@ -77,7 +91,13 @@ describe('ai settings routes', () => {
       baseUrl: '',
       hasApiKey: true,
     })
+    expect(data.ark).toMatchObject({
+      embeddingModel: 'doubao-embedding-vision-251215',
+      baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+      hasApiKey: true,
+    })
     expect(data.gemini).not.toHaveProperty('apiKey')
+    expect(data.ark).not.toHaveProperty('apiKey')
   })
 
   it('preserves apiKey when updating user config without apiKey', async () => {
@@ -88,7 +108,12 @@ describe('ai settings routes', () => {
       body: JSON.stringify({
         mode: 'user',
         provider: 'gemini',
-        gemini: { model: 'gemini-1.5-flash', baseUrl: '', apiKey: 'secret' },
+        gemini: { model: 'gemini-1.5-flash', baseUrl: '', apiKey: 'secret-gemini' },
+        ark: {
+          embeddingModel: 'doubao-embedding-vision-251215',
+          baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+          apiKey: 'secret-ark',
+        },
       }),
     })
     expect(firstPut.status).toBe(200)
@@ -101,6 +126,10 @@ describe('ai settings routes', () => {
         mode: 'user',
         provider: 'gemini',
         gemini: { model: 'gemini-1.5-pro', baseUrl: 'https://example.com' },
+        ark: {
+          embeddingModel: 'doubao-embedding-vision',
+          baseUrl: 'https://ark.example.com/api/v3',
+        },
       }),
     })
     expect(secondPut.status).toBe(200)
@@ -112,9 +141,14 @@ describe('ai settings routes', () => {
       baseUrl: 'https://example.com',
       hasApiKey: true,
     })
+    expect(data.ark).toMatchObject({
+      embeddingModel: 'doubao-embedding-vision',
+      baseUrl: 'https://ark.example.com/api/v3',
+      hasApiKey: true,
+    })
   })
 
-  it('rejects user mode update without apiKey when no key exists', async () => {
+  it('rejects user mode update without gemini apiKey when no key exists', async () => {
     const res = await app.request('/api/settings/ai', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Cookie: cookie },
@@ -122,6 +156,7 @@ describe('ai settings routes', () => {
         mode: 'user',
         provider: 'gemini',
         gemini: { model: 'gemini-1.5-flash', baseUrl: '' },
+        ark: { embeddingModel: 'doubao-embedding-vision-251215', baseUrl: 'https://ark.cn-beijing.volces.com/api/v3' },
       }),
     })
 
@@ -138,6 +173,7 @@ describe('ai settings routes', () => {
         mode: 'server',
         provider: 'gemini',
         gemini: {},
+        ark: {},
       }),
     })
 
@@ -147,12 +183,18 @@ describe('ai settings routes', () => {
       mode: 'server',
       provider: 'gemini',
       gemini: { model: '', baseUrl: '', hasApiKey: false },
+      ark: {
+        embeddingModel: DEFAULT_ARK_EMBEDDING_MODEL,
+        baseUrl: DEFAULT_ARK_BASE_URL,
+        hasApiKey: false,
+      },
     })
 
     const getRes = await app.request('/api/settings/ai', { headers: { Cookie: cookie } })
     const data = await getRes.json()
     expect(data.mode).toBe('server')
     expect(data.gemini.hasApiKey).toBe(false)
+    expect(data.ark.hasApiKey).toBe(false)
   })
 
   it('deletes config and clears hasApiKey', async () => {
@@ -163,6 +205,11 @@ describe('ai settings routes', () => {
         mode: 'user',
         provider: 'gemini',
         gemini: { model: 'gemini-1.5-flash', baseUrl: 'https://example.com', apiKey: 'secret' },
+        ark: {
+          embeddingModel: 'doubao-embedding-vision-251215',
+          baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+          apiKey: 'secret-ark',
+        },
       }),
     })
 
@@ -176,10 +223,11 @@ describe('ai settings routes', () => {
     const getRes = await app.request('/api/settings/ai', { headers: { Cookie: cookie } })
     const data = await getRes.json()
     expect(data.gemini.hasApiKey).toBe(false)
+    expect(data.ark.hasApiKey).toBe(false)
   })
 
   it('tests config successfully', async () => {
-    vi.mocked(generateText).mockResolvedValue({ text: 'ok' } as any)
+    vi.mocked(testGeminiConfig).mockResolvedValue(undefined)
 
     const res = await app.request('/api/settings/ai/test', {
       method: 'POST',
@@ -188,17 +236,25 @@ describe('ai settings routes', () => {
         mode: 'user',
         provider: 'gemini',
         gemini: { model: 'gemini-1.5-flash', baseUrl: '', apiKey: 'secret' },
+        ark: {
+          embeddingModel: 'doubao-embedding-vision-251215',
+          baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+        },
       }),
     })
 
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data).toEqual({ ok: true })
-    expect(createGoogleGenerativeAI).toHaveBeenCalledWith({ apiKey: 'secret', baseURL: undefined })
+    expect(testGeminiConfig).toHaveBeenCalledWith({
+      apiKey: 'secret',
+      baseURL: '',
+      model: 'gemini-1.5-flash',
+    })
   })
 
   it('returns failure payload when test call fails', async () => {
-    vi.mocked(generateText).mockRejectedValue(new Error('nope'))
+    vi.mocked(testGeminiConfig).mockRejectedValue(new Error('nope'))
 
     const res = await app.request('/api/settings/ai/test', {
       method: 'POST',
@@ -207,6 +263,10 @@ describe('ai settings routes', () => {
         mode: 'user',
         provider: 'gemini',
         gemini: { model: 'gemini-1.5-flash', baseUrl: 'https://example.com', apiKey: 'secret' },
+        ark: {
+          embeddingModel: 'doubao-embedding-vision-251215',
+          baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+        },
       }),
     })
 
