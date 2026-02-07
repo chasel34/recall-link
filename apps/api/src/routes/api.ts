@@ -6,6 +6,7 @@ import { tagsApp } from '../features/tags/tags.route.js'
 import { authApp } from '../features/auth/auth.route.js'
 import { settingsApp } from '../features/settings/ai-settings.route.js'
 import { jobsApp } from '../features/jobs/jobs.route.js'
+import { importsApp } from '../features/imports/imports.route.js'
 
 export const apiRoutes = new Hono()
 
@@ -18,3 +19,4 @@ apiRoutes.route('/tags', tagsApp)
 apiRoutes.route('/chat', chatApp)
 apiRoutes.route('/settings', settingsApp)
 apiRoutes.route('/jobs', jobsApp)
+apiRoutes.route('/imports', importsApp)
